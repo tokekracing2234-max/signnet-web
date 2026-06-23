@@ -75,8 +75,8 @@ return [
 
         // PERBAIKAN: Menambahkan provider yang membaca langsung dari tabel 'admins'
         'admins' => [
-            'driver' => 'database',
-            'table' => 'admins',
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
         ],
     ],
 
