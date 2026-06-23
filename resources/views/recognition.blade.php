@@ -53,7 +53,7 @@
         <div class="recognition-grid">
             <div class="camera-card fade-item delay-2">
                 <div class="camera-wrapper">
-                    <video id="input_video" autoplay muted playsinline style="display:none;"></video>
+                    <video id="input_video" autoplay muted playsinline webkit-playsinline style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;"></video>
                     <canvas id="output_canvas"></canvas>
                     <div id="status" class="status-indicator"><i class="fas fa-circle-notch fa-spin"></i>Menyiapkan Kamera AI...</div>
                     <div class="hand-legend">

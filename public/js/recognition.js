@@ -7,6 +7,7 @@ let lastPredictTime = 0;
 let onnxSession = null;
 let classLabels = [];
 let isModeChangingNotification = false;
+let isPredicting = false; // Flag lock untuk mencegah tumpukan async prediction
 
 window.currentDetectionMode = 'huruf'; 
 
@@ -15,12 +16,10 @@ async function initModelAndLabels() {
         statusText.style.display = 'block';
         statusText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat Model AI ke Browser...';
         
-        // 1. Fetch metadata label encoder hasil training python
         const metaResponse = await fetch('/models/meta_model.json');
         const metaData = await metaResponse.json();
         classLabels = metaData.classification_report ? Object.keys(metaData.classification_report).filter(k => k !== 'accuracy' && k !== 'macro avg' && k !== 'weighted avg') : [];
         
-        // 2. Load engine ONNX runtime web session
         onnxSession = await ort.InferenceSession.create('/models/rf_model.onnx');      
         console.log("✅ ONNX Session & Class Labels Berhasil Dimuat!");
 
@@ -31,7 +30,6 @@ async function initModelAndLabels() {
     }
 }
 
-// FUNGSI KHUSUS UPDATE WARNA TOMBOL
 window.updateButtonVisuals = function(mode) {
     const btnHuruf = document.getElementById('btnModeHuruf');
     const btnAngka = document.getElementById('btnModeAngka');
@@ -62,25 +60,19 @@ window.updateButtonVisuals = function(mode) {
     }
 }
 
-// PENGENDALI UTAMA PERGANTIAN MODE DENGAN PENGUNCI 1 DETIK & ANIMASI RINGAN
 window.changeMode = function(mode) {
     window.currentDetectionMode = mode;
-    
-    // Update tampilan tombol secara visual
     window.updateButtonVisuals(mode);
 
-    // AKTIFKAN LOCK SISTEM NOTIFIKASI TRANSISI STATUS TEKS
     isModeChangingNotification = true;
     statusText.style.display = 'block';
     
-    // Mengganti fa-pulse yang berat dengan kombinasi ikon statis yang clean dan ringan
     if (mode === 'huruf') {
         statusText.innerHTML = '<i class="fas fa-font" style="color: #3b82f6;"></i> Mengalihkan ke <b>Mode HURUF (A - Z)</b>';
     } else if (mode === 'angka') {
         statusText.innerHTML = '<i class="fas fa-hashtag" style="color: #10b981;"></i> Mengalihkan ke <b>Mode ANGKA (0 - 9)</b>';
     }
 
-    // Dipangkas tepat menjadi 1 detik (1000ms) agar terasa instan dan snappy
     setTimeout(() => {
         isModeChangingNotification = false;
     }, 1000);
@@ -91,10 +83,15 @@ window.changeMode = function(mode) {
 function extractFeatures(results) {
     let features = new Array(126).fill(0);
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        let handList = results.multiHandLandmarks.map((lm, i) => ({
-            lm, label: results.multiHandedness[i].label
-        })).sort((a, b) => a.label.localeCompare(b.label));
+        // PERBAIKAN 1: Petakan tipe tangan yang akurat pasca-mirroring halaman agar koordinat x tidak terbalik
+        let handList = results.multiHandLandmarks.map((lm, i) => {
+            let rawLabel = results.multiHandedness[i].label;
+            // Jika canvas di-mirror, posisi 'Left' di sensor kamera sebenarnya bertindak sebagai 'Right' bagi user
+            let correctedLabel = rawLabel === 'Left' ? 'Right' : 'Left';
+            return { lm, label: correctedLabel };
+        }).sort((a, b) => a.label.localeCompare(b.label)); // Urutkan: 'Left' lalu 'Right'
 
+        // Ambil titik acuan dasar dari pergelangan tangan pertama (Wrist - Landmark 0)
         const base_x = handList[0].lm[0].x;
         const base_y = handList[0].lm[0].y;
         const base_z = handList[0].lm[0].z;
@@ -104,6 +101,7 @@ function extractFeatures(results) {
                 let offset = index * 63;
                 hand.lm.forEach((lm, lmIdx) => {
                     let i = offset + (lmIdx * 3);
+                    // Normalisasi koordinat relatif terhadap titik pergelangan tangan utama
                     features[i]     = lm.x - base_x;
                     features[i + 1] = lm.y - base_y;
                     features[i + 2] = lm.z - base_z;
@@ -138,9 +136,10 @@ function drawGuide(ctx, width, height) {
 }
 
 async function runLocalPrediction(features) {
-    if (!onnxSession) return;
+    if (!onnxSession || isPredicting) return;
 
     try {
+        isPredicting = true; // Kunci proses async
         const inputTensor = new ort.Tensor('float32', new Float32Array(features), [1, 126]);
         const outputNames = onnxSession.outputNames;
         const labelOutputName = outputNames[0]; 
@@ -152,39 +151,23 @@ async function runLocalPrediction(features) {
         
         if (labelTensor && labelTensor.data) {
             const predictedIndex = Number(labelTensor.data[0]);
-            // Menggunakan 'let' agar nilai stringLabel bisa dimanipulasi oleh logika pemetaan
             let stringLabel = classLabels[predictedIndex] || "-";
 
-            // =========================================================================
-            // LOGIKA PEMETAAN AMBIGUITAS GESTUR KEMBAR (HURUF <-> ANGKA)
-            // =========================================================================
+            // LOGIKA PEMETAAN AMBIGUITAS GESTUR KEMBAR
             if (window.currentDetectionMode === 'angka') {
                 const upperLabel = stringLabel.toUpperCase();
-                
-                if (upperLabel === 'V') {
-                    stringLabel = '2';
-                } 
-                // Mengatasi bottleneck angka 6 s/d 9 yang sering terbaca sebagai W atau F
-                else if (upperLabel === 'W') {
-                    stringLabel = '6'; // Mapping default atau disesuaikan dengan intensitas kemiripan tertinggi
-                } 
-                else if (upperLabel === 'F') {
-                    stringLabel = '9';
-                } 
-                else if (upperLabel === 'B') {
-                    stringLabel = '4';
-                }
+                if (upperLabel === 'V') stringLabel = '2';
+                else if (upperLabel === 'W') stringLabel = '6'; 
+                else if (upperLabel === 'F') stringLabel = '9'; 
+                else if (upperLabel === 'B') stringLabel = '4';
             } else if (window.currentDetectionMode === 'huruf') {
-                // Kebalikannya jika berada di mode huruf namun model mendeteksi angka bawaannya
                 if (stringLabel === '2') stringLabel = 'V';
                 else if (stringLabel === '6' || stringLabel === '7' || stringLabel === '8') stringLabel = 'W';
                 else if (stringLabel === '9') stringLabel = 'F';
                 else if (stringLabel === '4') stringLabel = 'B';
             }
 
-            // =========================================================================
-            // VALIDASI DAN FILTER REGEX BERDASARKAN MODE AKTIF
-            // =========================================================================
+            // VALIDASI FILTER REGEX BERDASARKAN MODE AKTIF
             let isLabelAllowed = true;
             const isAngka = /^[0-9]$/.test(stringLabel);
 
@@ -194,9 +177,7 @@ async function runLocalPrediction(features) {
                 isLabelAllowed = false; 
             }
 
-            // =========================================================================
             // PROSES SELEKSI SKOR AKURASI (CONFIDENCE SCORE)
-            // =========================================================================
             let confidenceScore = "0"; 
             if (probOutputName && outputMap[probOutputName]) {
                 const probTensor = outputMap[probOutputName];
@@ -206,11 +187,9 @@ async function runLocalPrediction(features) {
                 }
             }
 
-            // =========================================================================
-            // EVALUASI KELAYAKAN UI & RENDER NOTIFIKASI STATUS
-            // =========================================================================
+            // EVALUASI KELAYAKAN UI
             if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
-                if (parseFloat(confidenceScore) > 30.0) {
+                if (parseFloat(confidenceScore) > 35.0) { // Menaikkan sedikit treshold agar lebih stabil
                     updateUI(stringLabel, confidenceScore); 
 
                     if (!isModeChangingNotification) {
@@ -230,17 +209,23 @@ async function runLocalPrediction(features) {
             }
         }
     } catch (err) {
-        console.error("Gagal melakukan prediksi ONNX lokal untuk Pengenalan Isyarat:", err);
+        console.error("Gagal melakukan prediksi ONNX lokal:", err);
+    } finally {
+        isPredicting = false; // Buka kunci proses
     }
 }
 
 function onResults(results) {
+    // Hindari pemrosesan jika elemen video belum siap memuat metadata dimensi gambar
+    if (!videoElement.videoWidth || !videoElement.videoHeight) return;
+
     canvasElement.width = videoElement.videoWidth;
     canvasElement.height = videoElement.videoHeight;
+    
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     
-    canvasCtx.save();
+    // Terapkan efek Mirroring horizontal untuk kebutuhan visual user
     canvasCtx.translate(canvasElement.width, 0);
     canvasCtx.scale(-1, 1);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
@@ -248,7 +233,8 @@ function onResults(results) {
     if (results.multiHandLandmarks) {
         results.multiHandLandmarks.forEach((landmarks, index) => {
             const handedness = results.multiHandedness[index].label;
-            const handColor = handedness === 'Right' ? '#6366f1' : '#10b981';
+            // PERBAIKAN 2: Sinkronisasi warna outline skeleton tangan kiri/kanan pasca-mirroring
+            const handColor = handedness === 'Left' ? '#6366f1' : '#10b981';
 
             drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
                 color: handColor,
@@ -262,11 +248,13 @@ function onResults(results) {
         });
     }
     canvasCtx.restore();
+    
+    // Gambar overlay box pemandu di lapisan teratas
     drawGuide(canvasCtx, canvasElement.width, canvasElement.height);
-    canvasCtx.restore();
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const now = Date.now();
+        // Berikan throttle jeda prediksi 200ms agar CPU tidak tersedak encodegrid tensor
         if (now - lastPredictTime > 200) {
             lastPredictTime = now;
             const features = extractFeatures(results);
@@ -274,18 +262,15 @@ function onResults(results) {
         }
     } else {
         updateUI("-", 0);
-        
-        // Jeda waktu ketat mencegah teks pencarian menimpa notifikasi pergantian mode
         if (!isModeChangingNotification) {
             statusText.innerHTML = '<i class="fas fa-video" style="color: #9ca3af;"></i> Mencari Tangan di Area Kamera...';
         }
     }
 }
 
+// Inisialisasi Google MediaPipe Hands
 const hands = new Hands({
-    locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    }
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
 
 hands.setOptions({
@@ -297,18 +282,48 @@ hands.setOptions({
 
 hands.onResults(onResults);
 
-const camera = new Camera(videoElement, {
-    onFrame: async () => {
-        await hands.send({
-            image: videoElement
-        });
-    },
-    width: 1280,
-    height: 720
-});
+// PERBAIKAN 3: Fallback Kamera Fleksibel & Penanganan Loop Frame Manual yang Aman
+async function startCameraSystem() {
+    try {
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640, max: 1280 },
+                height: { ideal: 480, max: 720 }
+            },
+            audio: false
+        };
 
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = stream;
+        
+        // Buat loop frame internal menggunakan requestAnimationFrame (jauh lebih mulus dibanding modul internal MediaPipe)
+        videoElement.addEventListener('loadedmetadata', () => {
+            async function processFrame() {
+                if (!videoElement.paused && !videoElement.ended) {
+                    await hands.send({ image: videoElement });
+                }
+                requestAnimationFrame(processFrame);
+            }
+            requestAnimationFrame(processFrame);
+        });
+    } catch (err) {
+        console.warn("⚠️ Gagal inisialisasi mediaDevices lokal, mencoba modul fallback MediaPipe...", err);
+        // Fallback terakhir jika arsitektur browser melarang pembacaan stream murni (HTTPS/lokal sandboxing)
+        const cameraFallback = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+        cameraFallback.start();
+    }
+}
+
+// Trigger eksekusi utama saat dokumen dimuat penuh
 window.addEventListener('DOMContentLoaded', async () => {
     await initModelAndLabels();
-    camera.start();
+    await startCameraSystem();
     window.updateButtonVisuals(window.currentDetectionMode);
 });
