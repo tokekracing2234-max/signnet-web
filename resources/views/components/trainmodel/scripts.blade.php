@@ -377,18 +377,30 @@
         btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> MEMPROSES TRAINING...`;
         addLog("SISTEM: Memulai proses training model AI... (Mohon tunggu, proses ini memakan waktu beberapa menit)");
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            addLog("ERROR: CSRF Token tidak ditemukan. Refresh halaman.");
+            return;
+        }
+
         // 2. Kirim request dengan menyertakan signal dari AbortController
         fetch('/train-model', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({ trigger: 'train' }),
             signal: controller.signal
         })
         .then(res => {
-            clearTimeout(timeoutId); // Hapus timer jika server merespon tepat waktu
+            clearTimeout(timeoutId);
+            if (!res.ok) {
+                return res.json().then(errData => {
+                    throw new Error(errData.message || `Server error: ${res.status}`);
+                });
+            }
             return res.json().then(data => ({ ok: res.ok, data }));
         })
         .then(({ ok, data }) => {
