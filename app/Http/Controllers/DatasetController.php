@@ -127,18 +127,24 @@ class DatasetController extends Controller
         $allData = DB::table('datasets')->get();
         $timestamp = date('Y-m-d_H-i-s');
 
+        // Menampung data yang sudah dibersihkan dari ID utama
+        $sanitizedData = [];
+        foreach ($allData as $row) {
+            $arrayRow = (array) $row;
+            
+            // ANTI BENTROK: Buang id_dataset & id agar database target menggunakan AUTO_INCREMENT
+            unset($arrayRow['id_dataset']); 
+            unset($arrayRow['id']); 
+            
+            $sanitizedData[] = $arrayRow;
+        }
+
         if (strtolower($format) === 'sql') {
             // Generasi file SQL dump khusus untuk tabel datasets
             $sqlContent = "-- SignNet Project Database Dump\n";
             $sqlContent .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
             
-            foreach ($allData as $row) {
-                $arrayRow = (array) $row;
-                
-                // PERBAIKAN: Buang id_dataset & id agar tidak bentrok dengan PRIMARY key sewaktu di-import
-                unset($arrayRow['id_dataset']); 
-                unset($arrayRow['id']); 
-
+            foreach ($sanitizedData as $arrayRow) {
                 $columns = implode(", ", array_map(fn($c) => "`$c`", array_keys($arrayRow)));
                 $values = implode(", ", array_map(function($v) {
                     if (is_null($v)) return 'NULL';
@@ -154,8 +160,8 @@ class DatasetController extends Controller
                 ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
         }
 
-        // Default: Format JSON
-        $jsonContent = json_encode($allData, JSON_PRETTY_PRINT);
+        // Default: Format JSON (Sekarang sudah menggunakan $sanitizedData yang bersih dari ID)
+        $jsonContent = json_encode($sanitizedData, JSON_PRETTY_PRINT);
         $filename = "sign_language_dataset_{$timestamp}.json";
 
         return response($jsonContent, 200)

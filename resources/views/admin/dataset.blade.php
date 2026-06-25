@@ -32,7 +32,7 @@
                                     <i class="fa-solid fa-file-import mr-2 text-[10px]"></i>IMPORT DATASET
                                 </button>
 
-                                <button type="button" id="download-btn" onclick="triggerDownload()" 
+                                <button type="button" id="download-btn" onclick="executeDownload('json')" 
                                     class="hidden sm:flex items-center justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[11px] tracking-widest text-white active:scale-95 shadow-md transition-colors cursor-pointer">
                                     <i class="fa-solid fa-file-code mr-2 text-[10px]"></i>DOWNLOAD DATASET (JSON)
                                 </button>
@@ -49,7 +49,7 @@
                                 <i class="fa-solid fa-file-import mr-2 text-[10px]"></i>IMPORT DATASET
                             </button>
 
-                            <button type="button" onclick="triggerDownload()" 
+                            <button type="button" onclick="executeDownload('json')" 
                                 class="flex items-center justify-center w-full px-5 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[11px] tracking-widest text-white active:scale-95 shadow-md transition-colors cursor-pointer">
                                 <i class="fa-solid fa-file-code mr-2 text-[10px]"></i>DOWNLOAD DATASET (JSON)
                             </button>
@@ -219,7 +219,6 @@
 
             if (!importModal || !importModalCard) return;
 
-            // Set durasi animasi jadi super cepat (0.15 detik / 150ms)
             importModal.style.setProperty('--animate-duration', '0.35s');
             importModalCard.style.setProperty('--animate-duration', '0.35s');
 
@@ -236,7 +235,6 @@
 
             if (!importModal || !importModalCard) return;
 
-            // Set durasi yang sama untuk animasi keluar
             importModal.style.setProperty('--animate-duration', '0.35s');
             importModalCard.style.setProperty('--animate-duration', '0.35s');
 
@@ -264,6 +262,15 @@
             }
         }
 
+        /**
+         * Mengarahkan langsung ke method download di DatasetController.php
+         * Mendukung query string `?format=json` atau `?format=sql`
+         */
+        function executeDownload(format) {
+            // URL disesuaikan dengan pattern route internal aplikasi Laravel Anda
+            window.location.href = `/dataset/download?format=${format}`;
+        }
+
         function handleFileImport(event, format) {
             const file = event.target.files[0];
             if (!file) return;
@@ -274,15 +281,7 @@
                 reader.onload = function(e) {
                     try {
                         const jsonData = JSON.parse(e.target.result);
-                        if (typeof handleJsonUpload === 'function') {
-                            handleJsonUpload(jsonData);
-                        } else if (typeof handleFileImportOriginal === 'function') {
-                            // fallback ke logic handle lama jika ada di x-dataset.scripts
-                            handleFileImportOriginal(event);
-                        } else {
-                            console.log('JSON Data Loaded:', jsonData);
-                            alert('File JSON terbaca berhasil. Implementasikan fungsi handleJsonUpload() Anda.');
-                        }
+                        sendImportPayload('json', jsonData);
                     } catch (error) {
                         alert('Format struktur JSON tidak valid!');
                     }
@@ -292,7 +291,7 @@
             else if (format === 'sql') {
                 reader.onload = function(e) {
                     const sqlContent = e.target.result;
-                    uploadSqlContent(sqlContent);
+                    sendImportPayload('sql', sqlContent);
                 };
                 reader.readAsText(file);
             }
@@ -301,28 +300,42 @@
             event.target.value = '';
         }
 
-        function uploadSqlContent(sqlString) {
-            // Contoh AJAX standard untuk pengiriman data SQL ke endpoint laravel controller
-            fetch('/dataset/import-sql', {
+        /**
+         * Pengiriman berkas tunggal (JSON string / SQL plain text) 
+         * Mengarah ke endpoint pemrosesan utama backend
+         */
+        function sendImportPayload(formatType, contentData) {
+            const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfTokenElement) {
+                alert('CSRF Token tidak ditemukan! Pastikan tag <meta name="csrf-token"> berada di dalam head HTML.');
+                return;
+            }
+
+            fetch('/dataset/import', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfTokenElement.getAttribute('content')
                 },
-                body: JSON.stringify({ sql: sqlString })
+                body: JSON.stringify({ 
+                    format: formatType,
+                    content: contentData 
+                })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert('Dataset format SQL berhasil dieksekusi ke database!');
+                // Mendukung response format lama (data.success) maupun standard terstruktur (data.status)
+                if (data.success || data.status === 'success') {
+                    alert(data.message || 'Dataset berhasil diproses ke database!');
                     if (typeof loadDatasetStats === 'function') loadDatasetStats();
                 } else {
-                    alert('Gagal memproses file SQL: ' + (data.message || 'Error internal'));
+                    alert('Gagal memproses file: ' + (data.message || 'Error internal backend'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Terjadi kesalahan jaringan saat memproses SQL Script.');
+                alert('Terjadi kesalahan jaringan saat mentransfer payload dataset.');
             });
         }
     </script>
