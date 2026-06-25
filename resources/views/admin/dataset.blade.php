@@ -160,14 +160,17 @@
     </div>
 
     <div id="importModal" class="fixed inset-0 z-[1000] hidden items-center justify-center p-4 antialiased animate__animated">
+    
         <div class="absolute inset-0 bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeImportModal()"></div>
+        
         <div id="importModalCard" class="relative w-full max-w-md glass bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 shadow-2xl overflow-hidden flex flex-col animate__animated">
+            
             <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/5">
                 <div class="flex items-center gap-2.5">
                     <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                         <i class="fa-solid fa-file-import text-sm"></i>
                     </div>
-                    <h3 class="text-xs font-black tracking-widest uppercase text-slate-800 dark:text-white">Pilih Format Import</h3>
+                    <h3 class="text-xs font-black tracking-widest uppercase text-slate-800 dark:text-white">Pilih Format Dataset</h3>
                 </div>
                 <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/5">
                     <i class="fa-solid fa-xmark text-base"></i>
