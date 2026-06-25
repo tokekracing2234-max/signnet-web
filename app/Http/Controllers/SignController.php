@@ -24,6 +24,10 @@ class SignController extends Controller
     // =========================================================================
     public function updateModelFiles(Request $request)
     {
+        // PERBAIKAN: Beri waktu dan memori ekstra untuk memproses file besar
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         try {
             $request->validate([
                 'onnx_model' => 'required|file',
@@ -32,11 +36,11 @@ class SignController extends Controller
             ]);
 
             $destinationPath = public_path('models');
-
             if (!File::exists($destinationPath)) {
                 File::makeDirectory($destinationPath, 0755, true);
             }
 
+            // Gunakan storeAs atau move dengan pengecekan
             $request->file('onnx_model')->move($destinationPath, 'rf_model.onnx');
             $request->file('labels')->move($destinationPath, 'labels.json');
 
@@ -46,17 +50,11 @@ class SignController extends Controller
             }
             $request->file('meta_model')->move($storageMetadataDirectory, 'meta_model.json');
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Aset web frontend dan backend berhasil diperbarui otomatis oleh Flask server!'
-            ], 200);
+            return response()->json(['status' => 'success', 'message' => 'Update berhasil'], 200);
 
         } catch (\Exception $e) {
             Log::error('updateModelFiles error: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal memperbarui berkas model di Laravel: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
