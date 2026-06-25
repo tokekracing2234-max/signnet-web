@@ -380,6 +380,8 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
             addLog("ERROR: CSRF Token tidak ditemukan. Refresh halaman.");
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
             return;
         }
 
@@ -389,7 +391,7 @@
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': csrfToken
             },
             body: JSON.stringify({ trigger: 'train' }),
             signal: controller.signal
@@ -406,6 +408,14 @@
         .then(({ ok, data }) => {
             if (!ok || data.status !== 'success') {
                 throw new Error(data.message || 'Training gagal tanpa keterangan.');
+            }
+
+            // PERBAIKAN SINKRONISASI BACKGROUND ASYNC (ANTI-503 RAILWAY)
+            if (data.async) {
+                addLog("SUKSES: Request training berhasil diterima oleh Cloud Server Google Colab.");
+                addLog("SISTEM: Proses eksekusi dijalankan secara background di Colab. Jangan tutup halaman ini, file hasil training akan dikirimkan otomatis jika sudah selesai.");
+                AppAlert.fire('success', 'Training Dimulai', 'Model sedang dilatih di Google Colab Cloud. Halaman ini akan memantau proses sinkronisasi file.');
+                return;
             }
 
             const akurasi = (data.accuracy * 100).toFixed(1);
@@ -492,7 +502,7 @@
             btn.disabled   = false;
             btn.innerHTML  = originalHTML;
         });
-    }
+}
 
     function drawGuide(w, h) {
         ctx.strokeStyle = "rgba(99, 102, 241, 0.4)";

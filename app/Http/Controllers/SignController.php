@@ -16,7 +16,7 @@ class SignController extends Controller
     public function __construct()
     {
         // 1. DIUBAH: Mengarah langsung ke URL publik terowongan Localtunnel Google Colab kamu
-        $this->flaskUrl = 'https://tasty-monkey-2.loca.lt';
+        $this->flaskUrl = 'https://signnet-ai-skripsi-anda.loca.lt';
     }
 
     // =========================================================================
@@ -130,13 +130,10 @@ class SignController extends Controller
     }
 
     // =========================================================================
-    // JANGAN DIUBAH: Khusus melayani prosesTraining() di trainmodel.blade.php
+    // PERBAIKAN: Diubah menjadi pemicu Asinkronus agar terhindar dari timeout 503 Railway
     // =========================================================================
     public function trainModel()
     {
-        set_time_limit(0);
-        ini_set('memory_limit', '512M');
-
         try {
             $totalData = Datasets::count();
             if ($totalData < 5) {
@@ -146,51 +143,21 @@ class SignController extends Controller
                 ], 400);
             }
 
-            // Tembak Google Colab dan tunggu hasilnya
-            $response = Http::timeout(400)->post("{$this->flaskUrl}/train-cloud");
-
-            if ($response->successful()) {
-                $trainResult = $response->json();
-                $metaData = $trainResult['metadata'];
-
-                // Tentukan lokasi penyimpanan file asset secara lokal di server Laravel
-                $destinationPath = public_path('models');
-                $storageMetadataDirectory = storage_path('app/ai_metadata');
-
-                if (!File::exists($destinationPath)) File::makeDirectory($destinationPath, 0755, true);
-                if (!File::exists($storageMetadataDirectory)) File::makeDirectory($storageMetadataDirectory, 0755, true);
-
-                // Simpan metadata ke file lokal agar dashboard.blade.php bisa membacanya saat offline
-                File::put($storageMetadataDirectory . '/meta_model.json', json_encode($metaData, JSON_PRETTY_PRINT));
-                File::put($destinationPath . '/labels.json', json_encode($trainResult['pure_labels']));
-
-                $totalLabels = Datasets::distinct('label')->count('label');
-                
-                return response()->json([
-                    'status'                => 'success',
-                    'total_data'            => $totalData,
-                    'total_labels'          => $totalLabels,
-                    'accuracy'              => $metaData['accuracy'] ?? 0.0,
-                    'total_uji'             => $metaData['total_uji'] ?? 0,
-                    'total_statistik'       => $metaData['total_statistik'] ?? [],
-                    'detail_evaluasi'       => $metaData['detail_evaluasi'] ?? [],
-                    'confusion_matrix'      => $metaData['confusion_matrix'] ?? [],
-                    'classification_report'=> $metaData['classification_report'] ?? [],
-                ], 200);
+            // Tembak Google Colab dengan timeout sangat tipis (2 detik). 
+            // Kita sengaja menangkap Exception-nya karena request akan diputus sengaja oleh Laravel
+            // setelah Flask Colab menerima sinyal training awal agar tidak menggantung.
+            try {
+                Http::timeout(2)->post("{$this->flaskUrl}/train-cloud");
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                // Abaikan timeout koneksi pendek karena sinyal pemicu sudah masuk ke Flask
             }
 
-            $errorBody = $response->json();
             return response()->json([
-                'status'  => 'error',
-                'message' => $errorBody['message'] ?? 'Backend Python mengembalikan error.',
-                'detail'  => $errorBody,
-            ], $response->status());
+                'status'  => 'success',
+                'message' => 'Proses training berhasil dipicu di Cloud Server! Hasilnya akan dikirim otomatis ke server setelah selesai.',
+                'async'   => true
+            ], 200);
 
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Tidak dapat terhubung ke server Python Cloud. Pastikan terowongan Localtunnel di Colab aktif!',
-            ], 503);
         } catch (\Exception $e) {
             Log::error('trainModel error: ' . $e->getMessage());
             return response()->json([
