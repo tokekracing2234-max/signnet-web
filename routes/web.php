@@ -6,7 +6,6 @@ use App\Http\Controllers\SignController;
 use App\Http\Controllers\PredictController;
 use App\Http\Controllers\DatasetController;
 use App\Http\Controllers\ManageAdminController;
-use Illuminate\Support\Facades\File;
 
 Route::get('/', function () {
     return view('welcome');
@@ -51,24 +50,6 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('/update/{id}', [ManageAdminController::class, 'update'])->name('update');
         Route::delete('/delete/{id}', [ManageAdminController::class, 'destroy'])->name('delete');
     });
-});
-
-Route::get('/models/rf_model.onnx', function () {
-    $path = public_path('models/rf_model.onnx');
-    if (!File::exists($path)) abort(404);
-
-    // Mengaktifkan kompresi Gzip bawaan PHP secara instan sebelum file dikirim
-    ob_start('ob_gzhandler'); 
-    
-    $response = response()->file($path, [
-        'Content-Type' => 'application/octet-stream',
-        'Cache-Control' => 'public, max-age=31536000, immutable'
-    ]);
-
-    // Mengakhiri proses buffering dengan aman agar kompresi langsung dieksekusi PHP
-    ob_end_flush();
-
-    return $response;
 });
 
 require __DIR__.'/auth.php';
