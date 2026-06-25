@@ -15,53 +15,50 @@ class SignController extends Controller
 
     public function __construct()
     {
-        $this->flaskUrl = env('PYTHON_API_URL', 'http://127.0.0.1:5000');
+        // 1. DIUBAH: Mengarah langsung ke URL publik terowongan Localtunnel Google Colab kamu
+        $this->flaskUrl = 'https://loud-dogs-eat.loca.lt';
     }
 
     // =========================================================================
     // BARU: Menerima file biner dan JSON kiriman dari Flask secara internal
     // =========================================================================
     public function updateModelFiles(Request $request)
-{
-    try {
-        // Tambahkan validasi untuk file labels
-        $request->validate([
-            'onnx_model' => 'required|file',
-            'meta_model' => 'required|file',
-            'labels'     => 'required|file', // Tambahkan ini
-        ]);
+    {
+        try {
+            $request->validate([
+                'onnx_model' => 'required|file',
+                'meta_model' => 'required|file',
+                'labels'     => 'required|file',
+            ]);
 
-        $destinationPath = public_path('models');
+            $destinationPath = public_path('models');
 
-        // Buat folder public/models jika belum ada
-        if (!File::exists($destinationPath)) {
-            File::makeDirectory($destinationPath, 0755, true);
+            if (!File::exists($destinationPath)) {
+                File::makeDirectory($destinationPath, 0755, true);
+            }
+
+            $request->file('onnx_model')->move($destinationPath, 'rf_model.onnx');
+            $request->file('labels')->move($destinationPath, 'labels.json');
+
+            $storageMetadataDirectory = storage_path('app/ai_metadata');
+            if (!File::exists($storageMetadataDirectory)) {
+                File::makeDirectory($storageMetadataDirectory, 0755, true);
+            }
+            $request->file('meta_model')->move($storageMetadataDirectory, 'meta_model.json');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Aset web frontend dan backend berhasil diperbarui otomatis oleh Flask server!'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('updateModelFiles error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memperbarui berkas model di Laravel: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Simpan / Overwriting file lama
-        $request->file('onnx_model')->move($destinationPath, 'rf_model.onnx');
-        $request->file('labels')->move($destinationPath, 'labels.json'); // Tambahkan ini
-
-        // Jika meta_model ingin ditaruh di storage agar aman seperti ModelSyncController:
-        $storageMetadataDirectory = storage_path('app/ai_metadata');
-        if (!File::exists($storageMetadataDirectory)) {
-            File::makeDirectory($storageMetadataDirectory, 0755, true);
-        }
-        $request->file('meta_model')->move($storageMetadataDirectory, 'meta_model.json');
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Aset web frontend dan backend berhasil diperbarui otomatis oleh Flask server!'
-        ], 200);
-
-    } catch (\Exception $e) {
-        Log::error('updateModelFiles error: ' . $e->getMessage());
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Gagal memperbarui berkas model di Laravel: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     // =========================================================================
     // JANGAN DIUBAH: Khusus melayani loadInitialData() di trainmodel.blade.php
@@ -148,7 +145,8 @@ class SignController extends Controller
                 ], 400);
             }
 
-            $response = Http::timeout(400)->post("{$this->flaskUrl}/api/train");
+            // 2. DIUBAH: Mengganti endpoint dari /api/train menjadi /train-cloud agar cocok dengan Python di Colab
+            $response = Http::timeout(400)->post("{$this->flaskUrl}/train-cloud");
 
             if ($response->successful()) {
                 $trainResult = $response->json();
@@ -177,7 +175,7 @@ class SignController extends Controller
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Tidak dapat terhubung ke server Python. Pastikan server Flask sudah dijalankan!',
+                'message' => 'Tidak dapat terhubung ke server Python Cloud. Pastikan terowongan Localtunnel di Colab aktif!',
             ], 503);
         } catch (\Exception $e) {
             Log::error('trainModel error: ' . $e->getMessage());
@@ -191,6 +189,7 @@ class SignController extends Controller
     public function getModelMetrics()
     {
         try {
+            // 3. DIUBAH: Mengganti endpoint pencatatan metrics dari local ke Cloud
             $response = Http::timeout(5)->get("{$this->flaskUrl}/api/get_model_stats");
 
             if ($response->successful()) {
@@ -205,7 +204,7 @@ class SignController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Server Python offline.',
+                'message' => 'Server Python Cloud offline.',
             ], 503);
         }
     }
@@ -232,6 +231,7 @@ class SignController extends Controller
             }
 
             try {
+                // 4. DIUBAH: Mengganti endpoint pemanggilan statistik dashboard ke Cloud
                 $response = Http::timeout(5)->get("{$this->flaskUrl}/api/get_model_stats");
                 
                 if ($response->successful()) {
