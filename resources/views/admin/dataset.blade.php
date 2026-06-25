@@ -338,7 +338,7 @@
         function selectDownloadFormat(format) {
             closeDownloadModal();
             // Menuju endpoint controller berdasarkan format yang dipilih pengguna
-            window.location.href = `/dataset/download?format=${format}`;
+            window.location.href = "{{ route('admin.dataset.download') }}?format=" + format;
         }
 
         /* ==================== PROCESS FILE IMPORT ==================== */
@@ -377,7 +377,7 @@
                 return;
             }
 
-            fetch('/dataset/import', {
+            fetch("{{ route('admin.dataset.import') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
