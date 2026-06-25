@@ -136,6 +136,9 @@ class SignController extends Controller
     // =========================================================================
     public function trainModel()
     {
+        // PERBAIKAN: Menghilangkan batasan waktu eksekusi 30 detik agar Laravel sabar menunggu Flask selesai melakukan training
+        set_time_limit(0);
+
         try {
             $totalData = Datasets::count();
             if ($totalData < 5) {
@@ -199,7 +202,7 @@ class SignController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Model belum pernah di-training.',
-            ], 404);
+                ], 404);
 
         } catch (\Exception $e) {
             return response()->json([
