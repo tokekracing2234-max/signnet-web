@@ -120,9 +120,9 @@
 
     el.actionBtn.addEventListener('click', () => {
         if (state.isProcessing) return;
-        let label = el.labelSelect.value === 'custom'
-            ? el.labelManual.value.trim()
-            : el.labelSelect.value;
+            let label = el.labelSelect.value === 'custom'
+                ? el.labelManual.value.trim()
+                : el.labelSelect.value;
 
         if (!label) {
             AppAlert.fire('warning', 'Label Kosong', 'Silakan pilih atau ketik label terlebih dahulu!');
@@ -135,7 +135,7 @@
             addLog("ERROR: Tangan tidak terlihat!");
             return;
         }
-        jalankanProses(label.toUpperCase());
+            jalankanProses(label.toUpperCase());
     });
 
     function jalankanProses(label) {
@@ -144,7 +144,7 @@
         let count = 5;
         el.timerDisplay.innerText = count;
         addLog(`SISTEM: Bersiap! Perekaman [${label}] dalam 5 detik...`);
-        const countdown = setInterval(() => {
+            const countdown = setInterval(() => {
             count--;
             if (count <= 0) {
                 clearInterval(countdown);
@@ -369,6 +369,7 @@
         const btn = document.getElementById('btn-train');
         const originalHTML = btn.innerHTML;
         
+        // 1. Inisialisasi AbortController untuk membuat timeout kustom (misal: 5 menit / 300.000 ms)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 300000); 
 
@@ -376,19 +377,19 @@
         btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> MEMPROSES TRAINING...`;
         addLog("SISTEM: Memulai proses training model AI... (Mohon tunggu, proses ini memakan waktu beberapa menit)");
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
             addLog("ERROR: CSRF Token tidak ditemukan. Refresh halaman.");
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
             return;
         }
 
+        // 2. Kirim request dengan menyertakan signal dari AbortController
         fetch('/train-model', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({ trigger: 'train' }),
             signal: controller.signal
@@ -411,12 +412,17 @@
             addLog(`SUKSES: Model diperbarui! Akurasi: ${akurasi}%`);
 
             el.accuracyValue.innerText = akurasi + '%';
+            
+            // Amankan performa: Kosongkan kontainer terlebih dahulu
             el.reportTable.innerHTML = '';
 
             const report = data.classification_report || {};
             const skip   = ['accuracy', 'macro avg', 'weighted avg'];
+
+            // Gunakan array buffer untuk menampung HTML di memori RAM terlebih dahulu
             let htmlBuffer = [];
 
+            // Cek apakah mode saat ini adalah light mode atau dark mode
             const isLightMode = document.documentElement.getAttribute('data-theme') === 'light' || !document.documentElement.classList.contains('dark');
 
             Object.keys(report).forEach(key => {
@@ -424,6 +430,7 @@
                 const metrics  = report[key];
                 const f1       = (metrics['f1-score'] * 100).toFixed(0);
                 
+                // --- FIXED COLOR MENGGUNAKAN HEX CODE (ANTI-PURGE TAILWIND) ---
                 let hexColor = '#ef4444'; 
                 let hexBorder = 'rgba(239, 68, 68, 0.3)';
                 
@@ -470,6 +477,8 @@
         })
         .catch(err => {
             clearTimeout(timeoutId);
+            
+            // Cek apakah error dipicu oleh abort() akibat batas waktu habis
             if (err.name === 'AbortError') {
                 addLog("ERROR: Waktu tunggu (timeout) habis. Server memproses terlalu lama.");
                 AppAlert.fire('error', 'Waktu Tunggu Habis', 'Proses training memakan waktu terlalu lama di server. Silakan cek status server Flask/Railway Anda.');
