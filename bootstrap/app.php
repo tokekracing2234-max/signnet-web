@@ -12,9 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // MENDAFTARKAN MIDDLEWARE PENGAMAN SESSION DISINI:
+        // 1. Beritahu Laravel untuk mempercayai Proxy dari Railway agar HTTPS terbaca sempurna
+        $middleware->trustProxies(at: '*');
+
+        // 2. Hapus atau komentari AuthenticateSession yang merusak request Fetch API ganti password
         $middleware->web(append: [
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
+            // \Illuminate\Session\Middleware\AuthenticateSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
