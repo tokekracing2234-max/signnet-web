@@ -340,7 +340,40 @@
 
         function selectDownloadFormat(format) {
             closeDownloadModal();
-            window.location.href = "{{ route('admin.dataset.download') }}?format=" + format;
+
+            const totalRows = parseInt(document.getElementById('total-rows').innerText.replace(/,/g, '')) || 0;
+            if (totalRows <= 0) {
+                AppAlert.fire('error', 'GAGAL', 'Dataset kosong! Tidak ada data untuk diunduh.');
+                return;
+            }
+
+            // Tampilkan loading
+            const tbody = document.getElementById('dataset-table-body');
+            tbody.innerHTML = '<tr class="sm:border-none"><td colspan="5" class="px-8 py-10 text-center text-indigo-500 italic">Menyiapkan file unduhan...</td></tr>';
+
+            // Pakai fetch agar bisa tangkap error, lalu trigger download
+            fetch("{{ route('admin.dataset.download') }}?format=" + format)
+                .then(response => {
+                    if (!response.ok) throw new Error('Server error ' + response.status);
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'dataset.' + format;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    AppAlert.fire('success', 'BERHASIL', 'Dataset berhasil diunduh dalam format ' + format.toUpperCase() + '.');
+                })
+                .catch(() => {
+                    AppAlert.fire('error', 'GAGAL', 'Terjadi kesalahan saat mengunduh dataset.');
+                })
+                .finally(() => {
+                    loadDatasetStats();
+                });
         }
 
         /* ==================== PROCESS FILE IMPORT (KEMBALI KE LOGIC LAMA) ==================== */
@@ -383,44 +416,44 @@
         function uploadSqlContent(sqlString) {
             const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
             if (!csrfTokenElement) {
-                alert('CSRF Token tidak ditemukan!');
+                AppAlert.fire('error', 'GAGAL', 'CSRF Token tidak ditemukan!');
                 return;
             }
 
-            // Normalisasi baris agar pemisahan baris murni menggunakan \n (mencegah bug explode di OS Windows)
+            // Tampilkan loading di tabel
+            const tbody = document.getElementById('dataset-table-body');
+            tbody.innerHTML = '<tr class="sm:border-none"><td colspan="5" class="px-8 py-10 text-center text-emerald-500 italic">Mengeksekusi SQL ke database...</td></tr>';
+
             const normalizedSql = sqlString.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
             fetch("{{ route('admin.dataset.import') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json', // Memastikan Laravel mengembalikan JSON, bukan redirect halaman
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfTokenElement.getAttribute('content')
                 },
-                // PERBAIKAN: Struktur data disesuaikan dengan validasi DatasetController Anda
                 body: JSON.stringify({ 
                     format: 'sql',
                     content: normalizedSql 
                 })
             })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server merespon dengan status ' + response.status);
-                }
+                if (!response.ok) throw new Error('Server merespon dengan status ' + response.status);
                 return response.json();
             })
             .then(data => {
-                // Menyesuaikan pengecekan status sukses dari response DatasetController Anda ('success')
                 if (data.status === 'success' || data.success) {
-                    alert(data.message || 'Dataset format SQL berhasil dieksekusi ke database!');
-                    if (typeof loadDatasetStats === 'function') loadDatasetStats();
+                    AppAlert.fire('success', 'IMPORT BERHASIL', data.message || 'Dataset format SQL berhasil dieksekusi ke database!');
                 } else {
-                    alert('Gagal memproses file SQL: ' + (data.message || 'Error internal'));
+                    AppAlert.fire('error', 'IMPORT GAGAL', data.message || 'Terjadi kesalahan internal server.');
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan jaringan saat memproses SQL Script.');
+            .catch(() => {
+                AppAlert.fire('error', 'GAGAL', 'Terjadi kesalahan jaringan saat memproses SQL Script.');
+            })
+            .finally(() => {
+                loadDatasetStats();
             });
         }
     </script>
