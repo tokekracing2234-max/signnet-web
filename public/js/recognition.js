@@ -279,7 +279,7 @@ async function runLocalPrediction(features) {
             // EVALUASI KELAYAKAN UI & RENDER NOTIFIKASI STATUS
             // =========================================================================
             if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
-                if (parseFloat(confidenceScore) > 70.0) {
+                if (parseFloat(confidenceScore) > 60.0) {
                     updateUI(stringLabel, confidenceScore); 
 
                     if (!isModeChangingNotification) {
@@ -364,9 +364,9 @@ const hands = new Hands({
 
 hands.setOptions({
     maxNumHands: 2,
-    modelComplexity: 1, // Tetap gunakan tipe model Lite (0) demi FPS tinggi lintas device
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
+    modelComplexity: 0, // Tetap gunakan tipe model Lite (0) demi FPS tinggi lintas device
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
 });
 
 hands.onResults(onResults);
@@ -408,8 +408,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         const constraints = {
             video: { 
-                width: { ideal: 1280 }, 
-                height: { ideal: 720 }, 
+                width: { ideal: 640 }, 
+                height: { ideal: 480 }, 
                 frameRate: { ideal: 24, max: 30 } 
             },
             audio: false
