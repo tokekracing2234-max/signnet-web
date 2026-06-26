@@ -295,6 +295,15 @@
             importModal.addEventListener('animationend', animationHandler);
         }
 
+        function showGlobalLoader() {
+            const loader = document.getElementById('global-loader');
+            if (loader) { loader.classList.remove('hidden'); loader.classList.add('flex'); }
+        }
+        function hideGlobalLoader() {
+            const loader = document.getElementById('global-loader');
+            if (loader) { loader.classList.remove('flex'); loader.classList.add('hidden'); }
+        }
+
         function selectFormat(format) {
             closeImportModal();
             if (format === 'json') {
@@ -347,11 +356,8 @@
                 return;
             }
 
-            // Tampilkan loading
-            const tbody = document.getElementById('dataset-table-body');
-            tbody.innerHTML = '<tr class="sm:border-none"><td colspan="5" class="px-8 py-10 text-center text-indigo-500 italic">Menyiapkan file unduhan...</td></tr>';
+            showGlobalLoader();
 
-            // Pakai fetch agar bisa tangkap error, lalu trigger download
             fetch("{{ route('admin.dataset.download') }}?format=" + format)
                 .then(response => {
                     if (!response.ok) throw new Error('Server error ' + response.status);
@@ -366,13 +372,13 @@
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                    AppAlert.fire('success', 'BERHASIL', 'Dataset berhasil diunduh dalam format ' + format.toUpperCase() + '.');
+                    AppAlert.fire('success', 'DOWNLOAD BERHASIL', 'Dataset berhasil diunduh dalam format ' + format.toUpperCase() + '.');
                 })
                 .catch(() => {
                     AppAlert.fire('error', 'GAGAL', 'Terjadi kesalahan saat mengunduh dataset.');
                 })
                 .finally(() => {
-                    loadDatasetStats();
+                    hideGlobalLoader();
                 });
         }
 
@@ -389,27 +395,21 @@
                         const jsonData = JSON.parse(e.target.result);
                         if (typeof handleJsonUpload === 'function') {
                             handleJsonUpload(jsonData);
-                        } else if (typeof handleFileImportOriginal === 'function') {
-                            handleFileImportOriginal(event);
                         } else {
-                            console.log('JSON Data Loaded:', jsonData);
-                            alert('File JSON terbaca berhasil. Implementasikan fungsi handleJsonUpload() Anda.');
+                            confirmImport(jsonData, event.target);
                         }
                     } catch (error) {
-                        alert('Format struktur JSON tidak valid!');
+                        AppAlert.fire('error', 'JSON CACAT', 'Format struktur JSON tidak valid!');
                     }
                 };
                 reader.readAsText(file);
-            } 
-            else if (format === 'sql') {
+            } else if (format === 'sql') {
                 reader.onload = function(e) {
-                    const sqlContent = e.target.result;
-                    uploadSqlContent(sqlContent);
+                    uploadSqlContent(e.target.result);
                 };
                 reader.readAsText(file);
             }
 
-            // Reset value agar file yang sama bisa di-upload ulang jika diperlukan
             event.target.value = '';
         }
 
@@ -420,9 +420,7 @@
                 return;
             }
 
-            // Tampilkan loading di tabel
-            const tbody = document.getElementById('dataset-table-body');
-            tbody.innerHTML = '<tr class="sm:border-none"><td colspan="5" class="px-8 py-10 text-center text-emerald-500 italic">Mengeksekusi SQL ke database...</td></tr>';
+            showGlobalLoader();
 
             const normalizedSql = sqlString.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
@@ -433,18 +431,15 @@
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfTokenElement.getAttribute('content')
                 },
-                body: JSON.stringify({ 
-                    format: 'sql',
-                    content: normalizedSql 
-                })
+                body: JSON.stringify({ format: 'sql', content: normalizedSql })
             })
             .then(response => {
-                if (!response.ok) throw new Error('Server merespon dengan status ' + response.status);
+                if (!response.ok) throw new Error('Server error ' + response.status);
                 return response.json();
             })
             .then(data => {
                 if (data.status === 'success' || data.success) {
-                    AppAlert.fire('success', 'IMPORT BERHASIL', data.message || 'Dataset format SQL berhasil dieksekusi ke database!');
+                    AppAlert.fire('success', 'IMPORT BERHASIL', data.message || 'Dataset SQL berhasil dieksekusi ke database!');
                 } else {
                     AppAlert.fire('error', 'IMPORT GAGAL', data.message || 'Terjadi kesalahan internal server.');
                 }
@@ -453,6 +448,7 @@
                 AppAlert.fire('error', 'GAGAL', 'Terjadi kesalahan jaringan saat memproses SQL Script.');
             })
             .finally(() => {
+                hideGlobalLoader();
                 loadDatasetStats();
             });
         }
