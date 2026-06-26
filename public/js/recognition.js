@@ -279,7 +279,7 @@ async function runLocalPrediction(features) {
             // EVALUASI KELAYAKAN UI & RENDER NOTIFIKASI STATUS
             // =========================================================================
             if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
-                if (parseFloat(confidenceScore) > 60.0) {
+                if (parseFloat(confidenceScore) > 30.0) {
                     updateUI(stringLabel, confidenceScore); 
 
                     if (!isModeChangingNotification) {
