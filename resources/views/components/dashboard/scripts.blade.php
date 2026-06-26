@@ -386,8 +386,17 @@
         const ctx = canvas.getContext('2d');
         if (window.distChartInst) window.distChartInst.destroy();
         
-        const labels = Object.keys(reportData).filter(k => !['accuracy', 'macro avg', 'weighted avg'].includes(k)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-        const counts = labels.map(l => reportData[l].support);
+        const labels = Object.keys(reportData)
+        .filter(k => {
+            const cleanKey = k.toLowerCase().trim();
+            return !['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey);
+        })
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        
+        const counts = labels.map(l => {
+            const dataTarget = reportData[l] || reportData[l.toUpperCase()] || reportData[l.toLowerCase()];
+            return dataTarget ? (dataTarget.support || 0) : 0;
+        });
         const gradient = ctx.createLinearGradient(0, 0, 0, 400); 
         gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#a855f7');
 
