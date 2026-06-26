@@ -215,6 +215,7 @@ class SignController extends Controller
     public function getDashboardStats()
     {
         try {
+            // 1. Ambil data agregasi dasar dari Database
             $totalData   = Datasets::count();
             $totalLabels = Datasets::distinct('label')->count('label');
             $labelStats  = Datasets::selectRaw('label, COUNT(*) as jumlah')
@@ -222,49 +223,76 @@ class SignController extends Controller
                 ->orderBy('label')
                 ->pluck('jumlah', 'label');
 
+            // 2. Inisialisasi nilai default aman
             $accuracy = 0.0;
             $confusionMatrix = [];
-            
             $classificationReport = [];
+
+            // Buat template struktur report default agar UI tidak kosong
             foreach ($labelStats as $label => $jumlah) {
-                $classificationReport[$label] = ['support' => $jumlah];
+                // Pastikan key berupa string bersih tanpa spasi
+                $cleanLabel = strtoupper(trim((string)$label)); 
+                $classificationReport[$cleanLabel] = [
+                    'precision' => 0,
+                    'recall'    => 0,
+                    'f1-score'  => 0,
+                    'support'   => $jumlah
+                ];
             }
 
-            try {
-                if (File::exists($this->metaPath)) {
-                    $flaskData = json_decode(File::get($this->metaPath), true);
-                    $accuracy = $flaskData['accuracy'] ?? 0.0;
-                    $confusionMatrix = $flaskData['confusion_matrix'] ?? [];
-                    
-                    if (!empty($flaskData['classification_report'])) {
-                        foreach ($flaskData['classification_report'] as $label => $metrics) {
-                            if (isset($classificationReport[$label])) {
-                                $classificationReport[$label] = array_merge($metrics, [
-                                    'support' => $classificationReport[$label]['support']
-                                ]);
-                            } else {
-                                $classificationReport[$label] = $metrics;
+            // 3. BACA FILE FISIK METADATA DARI DISK STORAGE
+            if (File::exists($this->metaPath)) {
+                try {
+                    $jsonContent = File::get($this->metaPath);
+                    $flaskData = json_decode($jsonContent, true);
+
+                    if (is_array($flaskData)) {
+                        // AMAN: Ambil akurasi dan matriks di awal agar tidak terganggu proses perulangan jika crash
+                        $accuracy = isset($flaskData['accuracy']) ? (float)$flaskData['accuracy'] : 0.0;
+                        $confusionMatrix = $flaskData['confusion_matrix'] ?? [];
+                        
+                        // Mapping classification report secara hati-hati
+                        if (!empty($flaskData['classification_report'])) {
+                            foreach ($flaskData['classification_report'] as $labelKey => $metrics) {
+                                // Paksa key menjadi string murni (mengatasi masalah key integer 0-9 dari Python)
+                                $stringLabel = strtoupper(trim((string)$labelKey));
+
+                                if (is_array($metrics)) {
+                                    // Ambil nilai support asli dari database jika tersedia, jika tidak gunakan dari json
+                                    $supportCount = $labelStats[$stringLabel] ?? ($metrics['support'] ?? 0);
+
+                                    $classificationReport[$stringLabel] = [
+                                        'precision' => $metrics['precision'] ?? 0,
+                                        'recall'    => $metrics['recall'] ?? 0,
+                                        'f1-score'  => $metrics['f1-score'] ?? 0,
+                                        'support'   => $supportCount
+                                    ];
+                                }
                             }
                         }
                     }
+                } catch (\Exception $flaskEx) {
+                    // Jika parser report bermasalah, log error-nya tapi jangan gagalkan akurasi & matriks
+                    Log::error('Gagal parsing isi detail file meta_model.json: ' . $flaskEx->getMessage());
                 }
-            } catch (\Exception $flaskEx) {
-                Log::warning('Dashboard memuat data local storage error: ' . $flaskEx->getMessage());
+            } else {
+                Log::warning('File metadata belum siap / tidak ditemukan di path: ' . $this->metaPath);
             }
 
+            // 4. Kembalikan response sukses dengan data utuh ke Dashboard
             return response()->json([
                 'status'                => 'success',
                 'total'                 => $totalData,
                 'total_data'            => $totalData,
                 'total_labels'          => $totalLabels,
                 'stats'                 => $labelStats,
-                'accuracy'              => $accuracy,
-                'confusion_matrix'      => $confusionMatrix,
+                'accuracy'              => $accuracy,            // Nilai asli hasil training (tidak akan 0 lagi)
+                'confusion_matrix'      => $confusionMatrix,    // Matriks konfusi utuh
                 'classification_report' => $classificationReport,
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('getDashboardStats error: ' . $e->getMessage());
+            Log::error('getDashboardStats error utama: ' . $e->getMessage());
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Gagal memuat data statistik dashboard: ' . $e->getMessage(),
