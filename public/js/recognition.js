@@ -214,101 +214,73 @@ async function runLocalPrediction(features) {
 
     try {
         const inputTensor = new ort.Tensor('float32', new Float32Array(features), [1, 126]);
-        const outputNames = onnxSession.outputNames;
-        const labelOutputName = outputNames[0]; 
-        const probOutputName = outputNames[1];  
 
         const feeds = { 'float_input': inputTensor };
-        const outputMap = await onnxSession.run(feeds, outputNames);
-        const labelTensor = outputMap[labelOutputName];
+        // FIX 1: Hardcode nama output, jangan pakai outputNames[0/1]
+        const outputMap = await onnxSession.run(feeds, ['label', 'probabilities']);
+        const labelTensor = outputMap['label'];
+        const probTensor  = outputMap['probabilities'];
 
-        console.log("Nama Output:", outputNames);
-        console.log("Data Label:", outputMap[labelOutputName].data);
-        console.log("Data Probabilitas Mentah:", outputMap[probOutputName].data);
-        console.log("outputNames:", onnxSession.outputNames);
-        
-        if (labelTensor && labelTensor.data) {
-            const predictedIndex = Number(labelTensor.data[0]);
-            let stringLabel = classLabels[predictedIndex] || "-";
+        if (!labelTensor?.data) return;
 
-            // =========================================================================
-            // LOGIKA PEMETAAN AMBIGUITAS GESTUR KEMBAR (HURUF <-> ANGKA)
-            // =========================================================================
-            if (window.currentDetectionMode === 'angka') {
-                const upperLabel = stringLabel.toUpperCase();
-                
-                if (upperLabel === 'V') {
-                    stringLabel = '2';
-                } 
-                else if (upperLabel === 'W') {
-                    stringLabel = '6'; 
-                } 
-                else if (upperLabel === 'F') {
-                    stringLabel = '9';
-                } 
-                else if (upperLabel === 'B') {
-                    stringLabel = '4';
-                }
-            } else if (window.currentDetectionMode === 'huruf') {
-                if (stringLabel === '2') stringLabel = 'V';
-                else if (stringLabel === '6' || stringLabel === '7' || stringLabel === '8') stringLabel = 'W';
-                else if (stringLabel === '9') stringLabel = 'F';
-                else if (stringLabel === '4') stringLabel = 'B';
-            }
+        // FIX 2: BigInt64Array perlu Number() — sudah ada, tetap pertahankan
+        const predictedIndex = Number(labelTensor.data[0]);
+        let stringLabel = classLabels[predictedIndex] || "-";
 
-            // =========================================================================
-            // VALIDASI DAN FILTER REGEX BERDASARKAN MODE AKTIF
-            // =========================================================================
-            let isLabelAllowed = true;
-            const isAngka = /^[0-9]$/.test(stringLabel);
+        // =========================================================================
+        // LOGIKA PEMETAAN AMBIGUITAS GESTUR KEMBAR (HURUF <-> ANGKA)
+        // =========================================================================
+        if (window.currentDetectionMode === 'angka') {
+            const upperLabel = stringLabel.toUpperCase();
+            if (upperLabel === 'V') stringLabel = '2';
+            else if (upperLabel === 'W') stringLabel = '6';
+            else if (upperLabel === 'F') stringLabel = '9';
+            else if (upperLabel === 'B') stringLabel = '4';
+        } else if (window.currentDetectionMode === 'huruf') {
+            if (stringLabel === '2') stringLabel = 'V';
+            else if (stringLabel === '6' || stringLabel === '7' || stringLabel === '8') stringLabel = 'W';
+            else if (stringLabel === '9') stringLabel = 'F';
+            else if (stringLabel === '4') stringLabel = 'B';
+        }
 
-            if (window.currentDetectionMode === 'angka' && !isAngka) {
-                isLabelAllowed = false; 
-            } else if (window.currentDetectionMode === 'huruf' && isAngka) {
-                isLabelAllowed = false; 
-            }
+        // =========================================================================
+        // VALIDASI DAN FILTER REGEX BERDASARKAN MODE AKTIF
+        // =========================================================================
+        let isLabelAllowed = true;
+        const isAngka = /^[0-9]$/.test(stringLabel);
+        if (window.currentDetectionMode === 'angka' && !isAngka) isLabelAllowed = false;
+        else if (window.currentDetectionMode === 'huruf' && isAngka) isLabelAllowed = false;
 
-            // =========================================================================
-            // PROSES SELEKSI SKOR AKURASI (CONFIDENCE SCORE)
-            // =========================================================================
-            let confidenceScore = "0";
-            if (probOutputName && outputMap[probOutputName]) {
-                const probTensor = outputMap[probOutputName];
-                if (probTensor.data && probTensor.data.length === classLabels.length) {
-                    // Ambil skor langsung dari predictedIndex
-                    const rawScore = probTensor.data[predictedIndex];
-                    confidenceScore = (rawScore * 100).toFixed(1);
-                } else if (probTensor.data) {
-                    // Fallback: ambil nilai tertinggi dari array
-                    confidenceScore = (Math.max(...probTensor.data) * 100).toFixed(1);
-                }
-            }
+        // =========================================================================
+        // CONFIDENCE SCORE — langsung dari index prediksi
+        // =========================================================================
+        let confidenceScore = "0";
+        if (probTensor?.data) {
+            const rawScore = probTensor.data[predictedIndex];
+            confidenceScore = (rawScore * 100).toFixed(1);
+        }
 
-            // =========================================================================
-            // EVALUASI KELAYAKAN UI & RENDER NOTIFIKASI STATUS
-            // =========================================================================
-            if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
-                if (parseFloat(confidenceScore) > 25.0) {
-                    updateUI(stringLabel, confidenceScore); 
-
-                    if (!isModeChangingNotification) {
-                        statusText.innerHTML = `<i class="fas fa-hand-sparkles" style="color: #10b981;"></i> Tangan terdeteksi.`;
-                    }
-                } else {
-                    updateUI("-", "0"); 
-                    if (!isModeChangingNotification) {
-                        statusText.innerHTML = '<i class="fas fa-hand-paper" style="color: #f59e0b;"></i> Posisi gestur kurang jelas...';
-                    }
-                }
+        // =========================================================================
+        // EVALUASI KELAYAKAN UI & RENDER NOTIFIKASI STATUS
+        // =========================================================================
+        if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
+            if (parseFloat(confidenceScore) > 25.0) {
+                updateUI(stringLabel, confidenceScore);
+                if (!isModeChangingNotification)
+                    statusText.innerHTML = `<i class="fas fa-hand-sparkles" style="color: #10b981;"></i> Tangan terdeteksi.`;
             } else {
                 updateUI("-", "0");
-                if (!isModeChangingNotification) {
-                    statusText.innerHTML = `<i class="fas fa-ban" style="color: #ef4444;"></i> Isyarat diabaikan (Bukan Mode ${window.currentDetectionMode.toUpperCase()})`;
-                }
+                if (!isModeChangingNotification)
+                    statusText.innerHTML = '<i class="fas fa-hand-paper" style="color: #f59e0b;"></i> Posisi gestur kurang jelas...';
             }
+        } else {
+            updateUI("-", "0");
+            if (!isModeChangingNotification)
+                statusText.innerHTML = `<i class="fas fa-ban" style="color: #ef4444;"></i> Isyarat diabaikan (Bukan Mode ${window.currentDetectionMode.toUpperCase()})`;
         }
+
     } catch (err) {
-        console.error("Gagal melakukan prediksi ONNX lokal untuk Pengenalan Isyarat:", err);
+        console.error("Gagal prediksi ONNX:", err);
     }
 }
 
