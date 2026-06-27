@@ -310,9 +310,12 @@ async function runLocalPrediction(features) {
 }
 
 function onResults(results) {
-    if (canvasElement.width !== videoElement.videoWidth || canvasElement.height !== videoElement.videoHeight) {
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
+    const wrapper = canvasElement.parentElement;
+    const w = wrapper.clientWidth;
+    const h = wrapper.clientHeight;
+    if (canvasElement.width !== w || canvasElement.height !== h) {
+        canvasElement.width = w;
+        canvasElement.height = h;
     }
     
     canvasCtx.save();
@@ -410,9 +413,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         const constraints = {
             video: { 
-                width: { ideal: 640 }, 
-                height: { ideal: 480 }, 
-                frameRate: { ideal: 24, max: 30 } 
+                facingMode: 'user',
+                width: { ideal: 640, max: 1280 }, 
+                height: { ideal: 480, max: 720 }, 
+                frameRate: { ideal: 24, max: 30 },
+                aspectRatio: { ideal: 4/3 }
             },
             audio: false
         };
