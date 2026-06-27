@@ -313,17 +313,9 @@ async function runLocalPrediction(features) {
         // =========================================================================
         // CONFIDENCE SCORE
         // =========================================================================
-        let confidenceScore = "0"; 
-
-        // 1. Pastikan tensor output-nya ada dulu (mengadopsi keamanan Opsi 2)
-        if (probOutputName && outputMap[probOutputName]) {
-            const probTensor = outputMap[probOutputName];
-            
-            // 2. Ambil nilai berdasarkan predictedIndex (mengadopsi akurasi Opsi 1)
-            if (probTensor.data && typeof predictedIndex !== 'undefined') {
-                const rawScore = probTensor.data[predictedIndex];
-                confidenceScore = (rawScore * 100).toFixed(1); 
-            }
+        let confidenceScore = "0";
+        if (probTensor?.data) {
+            confidenceScore = (probTensor.data[predictedIndex] * 100).toFixed(1);
         }
         console.log(`Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
 
