@@ -46,6 +46,29 @@ async function saveModelToStorage(dbName, storeName, key, data) {
             store.put(data, key);
             transaction.oncomplete = () => resolve(true);
         };
+        openRequest.onerror = () => resolve(false);
+    });
+}
+
+async function clearOldModels(dbName, storeName, currentKey) {
+    return new Promise((resolve) => {
+        const openRequest = indexedDB.open(dbName, 1);
+        openRequest.onsuccess = function() {
+            const db = openRequest.result;
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const getAllKeys = store.getAllKeys();
+            getAllKeys.onsuccess = function() {
+                getAllKeys.result.forEach(key => {
+                    if (key !== currentKey) {
+                        store.delete(key);
+                        console.log(`🗑️ Cache lama dihapus: ${key}`);
+                    }
+                });
+            };
+            transaction.oncomplete = () => resolve(true);
+        };
+        openRequest.onerror = () => resolve(false);
     });
 }
 
@@ -53,51 +76,77 @@ async function initModelAndLabels() {
     try {
         statusText.style.display = 'block';
         statusText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inisialisasi Model AI...';
-        
+
         const labelsResponse = await fetch('/models/labels.json');
         classLabels = await labelsResponse.json();
-        
+
         const options = {
-            executionProviders: ['webgl', 'wasm'], 
+            executionProviders: ['wasm'],
             enableCpuMemArena: true,
             enableMemPattern: true,
-            extra: { session: { set_denormal_as_zero: "1" } } 
+            extra: { session: { set_denormal_as_zero: "1" } }
         };
 
         const DB_NAME = "SignNetCache";
         const STORE_NAME = "models";
-        const MODEL_KEY = "rf_model_v2";
 
-        statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa memori lokal browser...';
-        let modelBuffer = await getStoredModel(DB_NAME, STORE_NAME, MODEL_KEY);
+        // Cek versi model di server (otomatis berubah tiap upload model baru)
+        statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa versi model...';
+        let serverVersion = "default";
+        try {
+            const versionRes = await fetch('/models/model_version.txt?t=' + Date.now());
+            if (versionRes.ok) {
+                serverVersion = (await versionRes.text()).trim();
+            }
+        } catch (e) {
+            console.warn("Gagal fetch versi, pakai default");
+        }
 
-        if (!modelBuffer) {
+        const MODEL_KEY = "rf_model_" + serverVersion;
+        console.log(`🔖 Model version: ${serverVersion} | Cache key: ${MODEL_KEY}`);
+
+        statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa cache lokal...';
+        let cachedBuffer = await getStoredModel(DB_NAME, STORE_NAME, MODEL_KEY);
+
+        let modelBuffer;
+
+        if (!cachedBuffer) {
             statusText.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Mengunduh Model Terkompresi (Pertama kali saja)...';
-            
+
             const response = await fetch('/models/rf_model.onnx.gz');
             if (!response.ok) throw new Error("Gagal download file .onnx.gz dari server");
-            
-            const compressedBuffer = await response.arrayBuffer();
-            
-            statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model...';
-            const compressedUint8 = new Uint8Array(compressedBuffer);
-            const decompressedUint8 = pako.ungzip(compressedUint8);
-            modelBuffer = decompressedUint8.buffer;
 
-            await saveModelToStorage(DB_NAME, STORE_NAME, MODEL_KEY, modelBuffer);
-            console.log("💾 Model ONNX berhasil disimpan ke IndexedDB browser!");
+            const compressedBuffer = await response.arrayBuffer();
+
+            // Simpan versi COMPRESSED ke IndexedDB (hemat storage)
+            statusText.innerHTML = '<i class="fas fa-save"></i> Menyimpan ke cache lokal...';
+            await saveModelToStorage(DB_NAME, STORE_NAME, MODEL_KEY, compressedBuffer);
+            console.log("💾 Model gz berhasil disimpan ke IndexedDB!");
+
+            // Hapus cache model lama otomatis
+            await clearOldModels(DB_NAME, STORE_NAME, MODEL_KEY);
+
+            // Decompress untuk dipakai sekarang
+            statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model...';
+            const uint8 = new Uint8Array(compressedBuffer);
+            modelBuffer = pako.ungzip(uint8).buffer;
+
         } else {
-            console.log("⚡ [CACHE HIT] Model ONNX ditemukan di memori lokal, memuat instan!");
+            console.log("⚡ [CACHE HIT] Model ditemukan di cache lokal!");
+            // Decompress dari cache
+            statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak dari cache...';
+            const uint8 = new Uint8Array(cachedBuffer);
+            modelBuffer = pako.ungzip(uint8).buffer;
         }
 
         statusText.innerHTML = '<i class="fas fa-bolt"></i> Mengaktifkan sistem deteksi...';
-        onnxSession = await ort.InferenceSession.create(modelBuffer, options);      
+        onnxSession = await ort.InferenceSession.create(modelBuffer, options);
         console.log("✅ ONNX Session berhasil diaktifkan!");
 
         statusText.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> AI Siap! Posisikan tangan Anda';
     } catch (error) {
         console.error("⚠️ Gagal memuat aset model:", error);
-        statusText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Gagal Memuat Model AI';
+        statusText.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Gagal: ${error.message}`;
     }
 }
 

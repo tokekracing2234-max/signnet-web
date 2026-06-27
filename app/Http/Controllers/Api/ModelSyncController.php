@@ -37,10 +37,12 @@ class ModelSyncController extends Controller
             $metaFile = $request->file('meta_model');
             $labelsFile = $request->file('labels');
 
-            // PERUBAHAN: Simpan sebagai rf_model.onnx.gz di folder public
             $onnxFile->move($publicModelsDirectory, 'rf_model.onnx.gz');
             $labelsFile->move($publicModelsDirectory, 'labels.json');
             $metaFile->move($storageMetadataDirectory, 'meta_model.json');
+
+            // Simpan versi model untuk versioning cache browser
+            file_put_contents(public_path('models/model_version.txt'), time());
 
             return response()->json([
                 'status' => 'success',
