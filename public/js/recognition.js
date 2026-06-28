@@ -408,15 +408,34 @@ function onResults(results) {
     if (results.multiHandLandmarks) {
         const totalHands = results.multiHandLandmarks.length;
         for (let i = 0; i < totalHands; i++) {
-            const landmarks = results.multiHandLandmarks[i];
+            const originalLandmarks = results.multiHandLandmarks[i];
             const handedness = results.multiHandedness[i].label;
             const handColor = handedness === 'Right' ? '#6366f1' : '#10b981';
 
-            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+            // =========================================================================
+            // PERBAIKAN: Transformasi Koordinat Landmark Mengikuti Area Crop
+            // =========================================================================
+            const adjustedLandmarks = originalLandmarks.map(landmark => {
+                // 1. Kembalikan koordinat normalisasi (0-1) ke bentuk pixel asli kamera
+                const pixelX = landmark.x * imgWidth;
+                const pixelY = landmark.y * imgHeight;
+
+                // 2. Kurangi dengan offset koordinat crop awal (srcX / srcY)
+                //    lalu bagi dengan lebar/tinggi baru hasil crop agar skalanya kembali (0-1)
+                return {
+                    x: (pixelX - srcX) / srcWidth,
+                    y: (pixelY - srcY) / srcHeight,
+                    z: landmark.z
+                };
+            });
+            // =========================================================================
+
+            // Menggambar menggunakan titik adjustedLandmarks yang sudah presisi
+            drawConnectors(canvasCtx, adjustedLandmarks, HAND_CONNECTIONS, {
                 color: handColor,
                 lineWidth: 3
             });
-            drawLandmarks(canvasCtx, landmarks, {
+            drawLandmarks(canvasCtx, adjustedLandmarks, {
                 color: '#ffffff',
                 lineWidth: 1,
                 radius: 2
