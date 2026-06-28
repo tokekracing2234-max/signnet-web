@@ -295,11 +295,15 @@ async function runLocalPrediction(features) {
                 else if (upperLabel === 'B') {
                     stringLabel = '4';
                 }
+                else if (upperLabel === 'O') {
+                    stringLabel = '0';
+                }
             } else if (window.currentDetectionMode === 'huruf') {
                 if (stringLabel === '2') stringLabel = 'V';
                 else if (stringLabel === '6' || stringLabel === '7' || stringLabel === '8') stringLabel = 'W';
                 else if (stringLabel === '9') stringLabel = 'F';
                 else if (stringLabel === '4') stringLabel = 'B';
+                else if (stringLabel === '0') stringLabel = 'O';
             }
 
         // =========================================================================
@@ -361,7 +365,7 @@ async function runLocalPrediction(features) {
 function onResults(results) {
     const wrapper = canvasElement.parentElement;
     const w = wrapper.clientWidth;
-    const h = wrapper.clientHeight;
+    const h = Math.round(w * (3 / 4));
     if (canvasElement.width !== w || canvasElement.height !== h) {
         canvasElement.width = w;
         canvasElement.height = h;
