@@ -495,10 +495,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         const constraints = {
             video: { 
                 facingMode: 'user',
-                width: { ideal: 640, max: 1280 }, 
-                height: { ideal: 480, max: 720 }, 
-                frameRate: { ideal: 24, max: 30 },
-                aspectRatio: { ideal: 4/3 }
+                width: 640, 
+                height: 480, 
+                frameRate: { ideal: 24 }
             },
             audio: false
         };
