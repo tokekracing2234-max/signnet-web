@@ -424,7 +424,7 @@
 }
 
 function jalankanPollingEvaluasi(btn, originalHTML) {
-    let waktuTungguMaksimal = 120; // Diperpanjang ke 120 cek x 5 detik = 10 menit maksimal batas tunggu
+    let waktuTungguMaksimal = 120;
     let hitungCek = 0;
 
     const intervalCek = setInterval(() => {
@@ -436,7 +436,6 @@ function jalankanPollingEvaluasi(btn, originalHTML) {
             return res.json();
         })
         .then(response => {
-            // Evaluasi apakah response berstatus 'ready' dari pembacaan file json
             if (response.status === 'ready') {
                 clearInterval(intervalCek);
                 
@@ -495,7 +494,6 @@ function jalankanPollingEvaluasi(btn, originalHTML) {
 
                 el.reportTable.innerHTML = htmlBuffer.join('');
 
-                // MEMANGGIL MODAL HASIL EVALUASI AGAR MUNCUL KE LAYAR USER
                 if (typeof openModalResult === "function") {
                     openModalResult();
                 } else {
@@ -514,7 +512,7 @@ function jalankanPollingEvaluasi(btn, originalHTML) {
             }
         })
         .catch(() => {
-            // Melewati error penolakan selama file belum siap dibuat kembali di storage Laravel
+            
         });
 
         if (hitungCek >= waktuTungguMaksimal) {

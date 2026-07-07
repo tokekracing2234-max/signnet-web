@@ -9,13 +9,11 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
-    /* Reset Global Tanpa Animasi Masal */
     * { 
         touch-action: manipulation; 
         box-sizing: border-box; 
     }
-    
-    /* STRATEGI 1: Isolasi Animasi Ringan pada Elemen Makro, Teks, & Ikon */
+
     .dashboard-wrapper, 
     .main-content,
     .glass-form-container h2,
@@ -26,8 +24,7 @@
         transition: background-color 0.15s ease-out, color 0.15s ease-out;
         will-change: background-color, color;
     }
-    
-    /* Sinkronisasi Variabel Desain Mode Gelap & Terang */
+
     :root, html, html[data-theme="dark"] {
         --bg-page: #020617;
         --bg-radial: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #020617 80%);
@@ -41,8 +38,7 @@
         --accent: #4f46e5;
         --accent-hover: #4338ca;
         --border-focus: #818cf8;
-        
-        /* Zona Bahaya - Mode Gelap */
+   
         --bg-danger-zone: rgba(244, 63, 94, 0.04);
         --border-danger-zone: rgba(244, 63, 94, 0.25);
         --text-danger-title: #fda4af;
@@ -64,8 +60,7 @@
         --accent: #6366f1;
         --accent-hover: #4f46e5;
         --border-focus: #4f46e5;
-        
-        /* Zona Bahaya - Mode Terang Estetis */
+
         --bg-danger-zone: #fff1f2;
         --border-danger-zone: rgba(244, 63, 94, 0.2);
         --text-danger-title: #9f1239;
@@ -85,7 +80,6 @@
         top: 0; left: 0; z-index: 50;
     }
 
-    /* STRATEGI 2: Optimasi Komponen Glass */
     .glass { 
         background: var(--bg-card); 
         border: 1px solid var(--border-card); 
@@ -107,8 +101,7 @@
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
-    
-    /* Grid Layout Struktur Lebar Sidebar */
+
     .app-layout-grid {
         display: grid;
         grid-template-columns: 5rem 1fr;
@@ -139,7 +132,6 @@
     .custom-scroll::-webkit-scrollbar { width: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
 
-    /* OVERRIDE STYLE ELEMEN FORM PROFILE INTERNAL */
     .glass-form-container input[type="text"], 
     .glass-form-container input[type="email"], 
     .glass-form-container input[type="password"] {
@@ -219,7 +211,6 @@
         transform: translateY(0);
     }
 
-    /* PROTEKSI KUSTOM AREA ZONA BAHAYA (HAPUS AKUN) */
     #custom-danger-zone {
         background-color: var(--bg-danger-zone) !important;
         border: 1px solid var(--border-danger-zone) !important;
@@ -236,7 +227,6 @@
         font-weight: 500;
     }
 
-    /* Tombol Aksi Hapus Akun Terproteksi Kontras Tinggi */
     #custom-danger-zone button, 
     #btn-trigger-delete {
         display: inline-flex !important;

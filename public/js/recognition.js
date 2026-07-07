@@ -8,16 +8,12 @@ let onnxSession = null;
 let classLabels = [];
 let isModeChangingNotification = false;
 
-// DEBOUNCE: variabel untuk cek konsistensi antar frame
 let lastPredictedLabel = "-";
 let consecutiveCount = 0;
 const CONSECUTIVE_NEEDED = 2;
 
 window.currentDetectionMode = 'huruf'; 
 
-// =========================================================================
-// INISIALISASI MODEL AI (OPTIMASI PENUH RAM & RESOLUSI BAGI SAFARI IOS / IPHONE)
-// =========================================================================
 async function getStoredModel(dbName, storeName, key) {
     return new Promise((resolve) => {
         const openRequest = indexedDB.open(dbName, 1);
@@ -90,7 +86,6 @@ async function initModelAndLabels() {
         const DB_NAME = "SignNetCache";
         const STORE_NAME = "models";
 
-        // Cek versi model di server (otomatis berubah tiap upload model baru)
         statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa versi model...';
         let serverVersion = "default";
         try {
@@ -103,7 +98,7 @@ async function initModelAndLabels() {
         }
 
         const MODEL_KEY = "rf_model_" + serverVersion;
-        console.log(`🔖 Model version: ${serverVersion} | Cache key: ${MODEL_KEY}`);
+        console.log(`Model version: ${serverVersion} | Cache key: ${MODEL_KEY}`);
 
         statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa cache lokal...';
         let cachedBuffer = await getStoredModel(DB_NAME, STORE_NAME, MODEL_KEY);
@@ -118,22 +113,18 @@ async function initModelAndLabels() {
 
             const compressedBuffer = await response.arrayBuffer();
 
-            // Simpan versi COMPRESSED ke IndexedDB (hemat storage)
             statusText.innerHTML = '<i class="fas fa-save"></i> Menyimpan ke cache lokal...';
             await saveModelToStorage(DB_NAME, STORE_NAME, MODEL_KEY, compressedBuffer);
-            console.log("💾 Model gz berhasil disimpan ke IndexedDB!");
+            console.log("Model gz berhasil disimpan ke IndexedDB!");
 
-            // Hapus cache model lama otomatis
             await clearOldModels(DB_NAME, STORE_NAME, MODEL_KEY);
 
-            // Decompress untuk dipakai sekarang
             statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model...';
             const uint8 = new Uint8Array(compressedBuffer);
             modelBuffer = pako.ungzip(uint8).buffer;
 
         } else {
-            console.log("⚡ [CACHE HIT] Model ditemukan di cache lokal!");
-            // Decompress dari cache
+            console.log("[CACHE HIT] Model ditemukan di cache lokal!");
             statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak dari cache...';
             const uint8 = new Uint8Array(cachedBuffer);
             modelBuffer = pako.ungzip(uint8).buffer;
@@ -141,7 +132,7 @@ async function initModelAndLabels() {
 
         statusText.innerHTML = '<i class="fas fa-bolt"></i> Mengaktifkan sistem deteksi...';
         onnxSession = await ort.InferenceSession.create(modelBuffer, options);
-        console.log("✅ ONNX Session berhasil diaktifkan!");
+        console.log("ONNX Session berhasil diaktifkan!");
 
         statusText.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> AI Siap! Posisikan tangan Anda';
     } catch (error) {
@@ -182,7 +173,6 @@ window.changeMode = function(mode) {
     window.currentDetectionMode = mode;
     window.updateButtonVisuals(mode);
 
-    // Reset debounce saat mode berganti
     lastPredictedLabel = "-";
     consecutiveCount = 0;
 
@@ -233,14 +223,13 @@ function updateUI(prediksi, akurasi) {
     const bar = document.getElementById('accuracy-bar');
     bar.style.width = akurasi + "%";
 
-    // Warna bar berdasarkan confidence
     const score = parseFloat(akurasi);
     if (score >= 70) {
-        bar.style.background = '#10b981'; // hijau — yakin
+        bar.style.background = '#10b981';
     } else if (score >= 50) {
-        bar.style.background = '#f59e0b'; // kuning — ragu
+        bar.style.background = '#f59e0b';
     } else {
-        bar.style.background = '#ef4444'; // merah — tidak yakin
+        bar.style.background = '#ef4444';
     }
 }
 
@@ -276,10 +265,6 @@ async function runLocalPrediction(features) {
         const predictedIndex = Number(labelTensor.data[0]);
         let stringLabel = classLabels[predictedIndex] || "-";
 
-        // =========================================================================
-        // LOGIKA PEMETAAN AMBIGUITAS GESTUR KEMBAR (HURUF <-> ANGKA)
-        // Diupdate berdasarkan confusion matrix model v2 (9269 data)
-        // =========================================================================
         if (window.currentDetectionMode === 'angka') {
                 const upperLabel = stringLabel.toUpperCase();
                 
@@ -306,26 +291,19 @@ async function runLocalPrediction(features) {
                 else if (stringLabel === '0') stringLabel = 'O';
             }
 
-        // =========================================================================
-        // VALIDASI DAN FILTER REGEX BERDASARKAN MODE AKTIF
-        // =========================================================================
         const isAngka = /^[0-9]$/.test(stringLabel);
         let isLabelAllowed = true;
         if (window.currentDetectionMode === 'angka' && !isAngka) isLabelAllowed = false;
         else if (window.currentDetectionMode === 'huruf' && isAngka) isLabelAllowed = false;
 
-        // =========================================================================
         // CONFIDENCE SCORE
-        // =========================================================================
         let confidenceScore = "0";
         if (probTensor?.data) {
             confidenceScore = (probTensor.data[predictedIndex] * 100).toFixed(1);
         }
         console.log(`Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
 
-        // =========================================================================
         // EVALUASI KELAYAKAN UI & DEBOUNCE
-        // =========================================================================
         if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
             if (parseFloat(confidenceScore) > 25.0) {
 
@@ -375,10 +353,7 @@ function onResults(results) {
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.translate(canvasElement.width, 0);
     canvasCtx.scale(-1, 1);
-    
-    // =========================================================================
-    // PERBAIKAN: Perhitungan Aspek Rasio Crop agar Kamera Tidak Gepeng di HP
-    // =========================================================================
+
     const imgWidth = results.image.width;
     const imgHeight = results.image.height;
     
@@ -388,22 +363,18 @@ function onResults(results) {
     let srcX = 0, srcY = 0, srcWidth = imgWidth, srcHeight = imgHeight;
     
     if (inputRatio > outputRatio) {
-        // Jika gambar terlalu lebar (Landscape), potong sisi kanan & kiri
         srcWidth = imgHeight * outputRatio;
         srcX = (imgWidth - srcWidth) / 2;
     } else {
-        // Jika gambar terlalu tinggi (Portrait), potong sisi atas & bawah
         srcHeight = imgWidth / outputRatio;
         srcY = (imgHeight - srcHeight) / 2;
     }
 
-    // Menggambar video asli secara proporsional (menggunakan parameter clipping)
     canvasCtx.drawImage(
         results.image, 
-        srcX, srcY, srcWidth, srcHeight, // Memotong gambar sumber
-        0, 0, canvasElement.width, canvasElement.height // Merender pas di canvas
+        srcX, srcY, srcWidth, srcHeight,
+        0, 0, canvasElement.width, canvasElement.height 
     );
-    // =========================================================================
 
     if (results.multiHandLandmarks) {
         const totalHands = results.multiHandLandmarks.length;
@@ -412,25 +383,17 @@ function onResults(results) {
             const handedness = results.multiHandedness[i].label;
             const handColor = handedness === 'Right' ? '#6366f1' : '#10b981';
 
-            // =========================================================================
-            // PERBAIKAN: Transformasi Koordinat Landmark Mengikuti Area Crop
-            // =========================================================================
             const adjustedLandmarks = originalLandmarks.map(landmark => {
-                // 1. Kembalikan koordinat normalisasi (0-1) ke bentuk pixel asli kamera
                 const pixelX = landmark.x * imgWidth;
                 const pixelY = landmark.y * imgHeight;
 
-                // 2. Kurangi dengan offset koordinat crop awal (srcX / srcY)
-                //    lalu bagi dengan lebar/tinggi baru hasil crop agar skalanya kembali (0-1)
                 return {
                     x: (pixelX - srcX) / srcWidth,
                     y: (pixelY - srcY) / srcHeight,
                     z: landmark.z
                 };
             });
-            // =========================================================================
 
-            // Menggambar menggunakan titik adjustedLandmarks yang sudah presisi
             drawConnectors(canvasCtx, adjustedLandmarks, HAND_CONNECTIONS, {
                 color: handColor,
                 lineWidth: 3
@@ -463,9 +426,7 @@ function onResults(results) {
     }
 }
 
-// =========================================================================
 // REGISTRASI ENGINE MEDIAPIPE HANDS
-// =========================================================================
 const hands = new Hands({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });

@@ -173,7 +173,6 @@
         // Set default global detection mode
         window.currentDetectionMode = window.currentDetectionMode || 'huruf';
 
-        // 1. Theme Management (Sync with Welcome Page)
         const themeToggleBtn = document.getElementById('themeToggle');
         const themeIcon = themeToggleBtn.querySelector('i');
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -186,8 +185,6 @@
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateToggleIcon(newTheme);
-            
-            // FIX: Refresh render tombol aktif/tidak aktif agar warna teks berubah seketika mengikuti variabel tema baru
             changeMode(window.currentDetectionMode);
         });
 
@@ -209,7 +206,6 @@
             }
         }
 
-        // 2. Mobile Responsive Navbar Trigger System
         function initResponsiveNavbar() {
             const navToggle = document.getElementById('mobileNavToggle');
             const navLinks = document.getElementById('navLinks');
@@ -255,7 +251,6 @@
             });
         }
 
-        // Execution on DOM Loaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 initResponsiveNavbar();

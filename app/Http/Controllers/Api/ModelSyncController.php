@@ -10,7 +10,7 @@ class ModelSyncController extends Controller
 {
     public function receiveModel(Request $request)
     {
-        // 1. Validasi memastikan ketiga file dikirim dengan benar oleh script Python
+        // 1. Validasi (cek file)
         if (!$request->hasFile('onnx_model') || !$request->hasFile('meta_model') || !$request->hasFile('labels')) {
             return response()->json([
                 'status' => 'error',
@@ -19,15 +19,15 @@ class ModelSyncController extends Controller
         }
 
         // 2. Tentukan target lokasi folder asset
-        $publicModelsDirectory = public_path('models');         // Untuk Frontend (Akses Cepat Browser)
-        $storageMetadataDirectory = storage_path('app/ai_metadata'); // Untuk Backend / Dashboard Admin (Aman)
+        $publicModelsDirectory = public_path('models');
+        $storageMetadataDirectory = storage_path('app/ai_metadata');
 
-        // Buat folder public/models jika belum ada
+        // folder public/models
         if (!File::exists($publicModelsDirectory)) {
             File::makeDirectory($publicModelsDirectory, 0755, true);
         }
 
-        // Buat folder storage/app/ai_metadata jika belum ada
+        // folder storage/app/ai_metadata
         if (!File::exists($storageMetadataDirectory)) {
             File::makeDirectory($storageMetadataDirectory, 0755, true);
         }
@@ -41,7 +41,6 @@ class ModelSyncController extends Controller
             $labelsFile->move($publicModelsDirectory, 'labels.json');
             $metaFile->move($storageMetadataDirectory, 'meta_model.json');
 
-            // Simpan versi model untuk versioning cache browser
             file_put_contents(public_path('models/model_version.txt'), time());
 
             return response()->json([

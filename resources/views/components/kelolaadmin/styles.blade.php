@@ -9,11 +9,9 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
-    /* Super Light Theme-Switch Transitions */
     * { 
         touch-action: manipulation; 
         box-sizing: border-box; 
-        /* Dioptimalkan: Hanya mentransisikan properti warna esensial untuk performa mobile terbaik */
         transition-property: background-color, border-color, text-color, fill, stroke;
         transition-duration: 200ms;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -54,8 +52,6 @@
     .card-stat-blue { background-color: var(--stat-bg-blue) !important; border-color: var(--stat-border-blue) !important; }
     .card-stat-green { background-color: var(--stat-bg-green) !important; border-color: var(--stat-border-green) !important; }
     .card-stat-amber { background-color: var(--stat-bg-amber) !important; border-color: var(--stat-border-amber) !important; }
-
-    /* PERBAIKAN MUTLAK: Menggunakan syntax standar min-height asli CSS agar tidak mengunci area viewport mobile */
     .dashboard-wrapper { 
         font-family: 'Plus Jakarta Sans', sans-serif; 
         background: var(--bg-main); 
@@ -67,7 +63,6 @@
         z-index: 50;
     }
 
-    /* Glassmorphism dioptimalkan agar tidak patah-patah saat transisi di mobile */
     .glass { 
         background: var(--glass-bg); 
         border: 1px solid var(--glass-border); 
@@ -95,7 +90,6 @@
     .app-layout-grid:has(#sidebar:hover) { grid-template-columns: 16rem 1fr; }
     .main-content { grid-column: 2; overflow-y: auto; min-width: 0; }
 
-    /* Animasi Kartu Dipercepat dan menggunakan Transform 3D agar di-render oleh hardware GPU */
     @keyframes simpleFade { 
         from { opacity: 0; transform: translate3d(0, 8px, 0); } 
         to { opacity: 1; transform: translate3d(0, 0, 0); } 

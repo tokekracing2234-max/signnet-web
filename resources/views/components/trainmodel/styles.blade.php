@@ -56,12 +56,10 @@
         position: absolute;
         top: 0; left: 0; z-index: 50;
         color: var(--text-base);
-        /* Mengaktifkan Akselerasi Hardware GPU */
         transform: translateZ(0);
         backface-visibility: hidden;
     }
 
-    /* MATIKAN BLUR DI HP/DESKTOP AGAR TIDAK LAG SAMA SEKALI */
     .glass { 
         background: var(--glass-bg); 
         border: 1px solid var(--glass-border); 
@@ -80,7 +78,6 @@
         color: transparent;
     }
     
-    /* Optimasi performa render layout utama */
     .main-content { overflow-y: auto; min-width: 0; transform: translateZ(0); }
 
     @keyframes simpleFade { 
@@ -138,53 +135,40 @@
     .modal-content.closing { animation: slideDown 0.2s ease-in forwards; }
     @keyframes slideDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(15px); opacity: 0; } }
 
-    /* ==========================================================================
-       FORCE OVERRIDE PAKSA UNTUK KOTAK EVALUASI JAVASCRIPT PADA LIGHT MODE
-       ========================================================================== */
     html[data-theme="light"] #report-table-container > div {
         background-color: #ffffff !important;
         background-image: none !important;
         border: 1px solid #c7d2fe !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
     }
-    
-    /* Hanya ubah text judul komponen dan teks label huruf statis (A, B, C, dst) menjadi gelap */
+
     html[data-theme="light"] #report-table-container h3,
     html[data-theme="light"] #report-table-container .text-xl,
     html[data-theme="light"] #report-table-container .font-bold:not([class*="text-"]) {
         color: #1e1b4b !important; 
     }
 
-    /* --------------------------------------------------------------------------
-       FIX 1: MEMUNCULKAN GARIS VERTIKAL & HORIZONTAL PEMBATAS DI KOTAK PRECISION & RECALL
-       -------------------------------------------------------------------------- */
     html[data-theme="light"] #report-table-container div.border-l,
     html[data-theme="light"] #report-table-container div.border-r,
     html[data-theme="light"] #report-table-container div.border-t,
     html[data-theme="light"] #report-table-container div.border-b,
     html[data-theme="light"] #report-table-container [class*="border-slate"],
     html[data-theme="light"] #report-table-container [class*="border-white/"] {
-        border-color: #cbd5e1 !important; /* Memaksa warna border menjadi abu-abu terang yang jelas */
+        border-color: #cbd5e1 !important;
         border-style: solid !important;
         opacity: 1 !important;
     }
 
-    /* --------------------------------------------------------------------------
-       FIX 2: PENYELAMAT WARNA DINAMIS F1-SCORE (AGAR 60% TIDAK BERWARNA HITAM)
-       -------------------------------------------------------------------------- */
-    /* Hijau untuk nilai tinggi (90% - 100%) */
     html[data-theme="light"] #report-table-container [class*="text-emerald"],
     html[data-theme="light"] #report-table-container [class*="text-green"] {
         color: #059669 !important; 
     }
 
-    /* Kuning/Oranye untuk nilai menengah (70% - 89%) */
     html[data-theme="light"] #report-table-container [class*="text-amber"],
     html[data-theme="light"] #report-table-container [class*="text-yellow"] {
         color: #d97706 !important; 
     }
 
-    /* Merah untuk nilai rendah/kritis (60% ke bawah seperti pada Label W) */
     html[data-theme="light"] #report-table-container [class*="text-rose"],
     html[data-theme="light"] #report-table-container [class*="text-red"] {
         color: #dc2626 !important; 

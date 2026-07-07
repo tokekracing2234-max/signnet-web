@@ -3,20 +3,19 @@
 <script>
     const htmlEl = document.documentElement;
     let globalClassificationReport = null;
-    let selectedLabelValue = ""; // State penampung nilai label terpilih
-    let currentMatrixFilterMode = 'all'; // State penampung filter matriks terpilih
+    let selectedLabelValue = "";
+    let currentMatrixFilterMode = 'all';
 
     function getAdaptiveColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? '#0f172a' : '#818cf8'; }
     function getGridColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? 'rgba(79, 70, 229, 0.08)' : 'rgba(255, 255, 255, 0.05)'; }
     function getMatrixBorderColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? 'rgba(79, 70, 229, 0.15)' : 'rgba(255, 255, 255, 0.05)'; }
 
-    // === DROPDOWN KUSTOM 1: MATRIKS KONFUSI ===
+    // DROPDOWN MATRIKS KONFUSI
     function toggleMatrixDropdown(event) {
         event.stopPropagation();
         const optionsList = document.getElementById('matrix-select-options');
         const arrow = document.getElementById('matrix-select-arrow');
-        
-        // Tutup dropdown label jika sedang terbuka
+
         document.getElementById('custom-select-options').classList.add('hidden');
         document.getElementById('custom-select-arrow').classList.remove('rotate-180');
 
@@ -37,13 +36,12 @@
         filterMatrix();
     }
 
-    // === DROPDOWN KUSTOM 2: EVALUASI PER LABEL ===
+    // DROPDOWN EVALUASI PER LABEL
     function toggleCustomDropdown(event) {
         event.stopPropagation();
         const optionsList = document.getElementById('custom-select-options');
         const arrow = document.getElementById('custom-select-arrow');
-        
-        // Tutup dropdown matriks jika sedang terbuka
+
         document.getElementById('matrix-select-options').classList.add('hidden');
         document.getElementById('matrix-select-arrow').classList.remove('rotate-180');
 
@@ -64,7 +62,6 @@
         updateLabelEvaluation(); 
     }
 
-    // Global klik handler untuk menutup semua dropdown kustom jika klik di luar area
     document.addEventListener('click', function(e) {
         const matrixTrigger = document.getElementById('matrix-select-trigger');
         const matrixOptions = document.getElementById('matrix-select-options');
@@ -81,7 +78,7 @@
         }
     });
 
-    // === MODAL DESKRIPSI (Asli & Singkat Sesuai Keinginan Anda) ===
+    // MODAL DESKRIPSI
     function openInfoModal(type) {
         const titleEl = document.getElementById('modalTitle');
         const bodyEl = document.getElementById('modalBody');
@@ -118,7 +115,6 @@
         toggleModal(true);
     }
 
-    // Named function diletakkan di luar scope agar reference memori untuk removeEventListener valid
     function onAnimationEndHandler(e) {
         const modal = document.getElementById('infoModal');
         const content = document.getElementById('modalContent');
@@ -133,7 +129,6 @@
     }
 
     function toggleModal(show) {
-        // Mencegah bubbling ke document click handler yang merusak lifecycle animasi keluar
         if (window.event) window.event.stopPropagation();
 
         const modal = document.getElementById('infoModal');

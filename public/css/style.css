@@ -3,15 +3,14 @@
 :root {
     --blue: #3b82f6;
     --blue-light: #60a5fa;
-    
-    /* DARK MODE CYBERPUNK SEAMLESS GRADIENT */
+
     --dark-bg: linear-gradient(180deg, 
-        #050914 0%,    /* Beranda: Ultra Deep Space */
-        #0a122c 22%,   /* Tentang: Cosmic Navy */
-        #151233 48%,   /* Fitur: Deep Tech Violet */
-        #0b1636 72%,   /* Daftar Isyarat: Cyber Blue */
-        #111c44 90%,   /* Deteksi: Deep Card Blue */
-        #03050a 100%   /* Footer: Jet Black */
+        #050914 0%,
+        #0a122c 22%,
+        #151233 48%,
+        #0b1636 72%,
+        #111c44 90%,
+        #03050a 100%
     );
     
     --dark-card: linear-gradient(145deg, #0d1730 0%, #132247 100%);
@@ -27,15 +26,14 @@
 [data-theme="light"] {
     --blue: #2563eb;
     --blue-light: #3b82f6;
-    
-    /* LIGHT MODE DYNAMIC FRUITY GRADIENT */
+
     --dark-bg: linear-gradient(180deg, 
-        #f0f7ff 0%,    /* Beranda: Fresh Sky Clean */
-        #e0e7ff 20%,   /* Tentang: Soft Lavender Mist */
-        #e0f2fe 45%,   /* Fitur: Ocean Ice Blue */
-        #f0fdf4 70%,   /* Daftar Isyarat: Fresh Mint Green */
-        #fff1f2 88%,   /* Deteksi: Warm Soft Coral */
-        #f8fafc 100%   /* Footer: Clean Slate */
+        #f0f7ff 0%,
+        #e0e7ff 20%,
+        #e0f2fe 45%,
+        #f0fdf4 70%,
+        #fff1f2 88%,
+        #f8fafc 100%
     );
     
     --dark-card: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%); 
@@ -59,7 +57,7 @@ body {
     will-change: background, color;
 }
 
-/* --- NAVBAR DESKTOP BASE --- */
+/* NAVBAR DESKTOP BASE */
 nav { 
     position: fixed; top: 0; left: 0; right: 0; z-index: 1030; 
     display: flex; align-items: center; justify-content: space-between; 
@@ -112,7 +110,7 @@ nav.scrolled {
 .theme-toggle-btn { background: var(--dark-card2); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.4s ease; }
 .theme-toggle-btn:hover { border-color: var(--blue); color: var(--blue); transform: scale(1.1) rotate(15deg); }
 
-/* --- BUTTON MENUS & LAYERS UTILITY --- */
+/* BUTTON MENUS & LAYERS UTILITY */
 .menu-toggle-btn {
     display: none;
     background: var(--dark-card2);
@@ -145,20 +143,20 @@ nav.scrolled {
     opacity: 1;
 }
 
-/* --- ANIMATION SYSTEM (KODE LAMA DIMASUKKAN KEMBALI) --- */
+/* ANIMATION SYSTEM */
 section { 
     min-height: 100vh; 
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
     padding: 100px 60px 80px; 
-    transition: opacity 1s ease, transform 1s ease; /* Dikembalikan ke durasi kode lama (1s) */
+    transition: opacity 1s ease, transform 1s ease;
     background: transparent !important; 
 }
 
 .animate-item {
     opacity: 0;
-    transform: translateY(50px) scale(0.95); /* Dikembalikan ke takaran transform kode lama */
+    transform: translateY(50px) scale(0.95);
     transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), 
                 transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
@@ -169,7 +167,6 @@ section {
     transform: translateY(0) scale(1);
 }
 
-/* Efek Glass Card & Fade In dari Modul Lama */
 .glass-card { 
     will-change: transform, box-shadow; 
     transition: background 0.4s, border-color 0.4s, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); 
@@ -191,7 +188,7 @@ section {
 .delay-5 { animation-delay: 0.33s; } 
 .delay-6 { animation-delay: 0.40s; }
 
-/* --- BUTTONS --- */
+/* BUTTONS */
 .btn-primary { 
     display: inline-flex; 
     align-items: center;
@@ -217,7 +214,7 @@ section {
 .btn-primary:hover i { transform: translateX(6px); }
 .btn-primary:active { transform: translateY(0) scale(0.98); }
 
-/* --- BERANDA (HERO RESTRUCTURED WITH GRID) --- */
+/* BERANDA */
 #beranda { 
     position: relative; 
     padding: 0 60px; 
@@ -272,7 +269,7 @@ section {
     100% { border-radius: 60% 40% 30% 70% / 60% 50% 50% 40%; }
 }
 
-/* --- TENTANG --- */
+/* TENTANG */
 #tentang { background: transparent !important; position: relative; }
 .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1200px; width: 100%; margin: 0 auto; position: relative; z-index: 2; }
 .about-img-wrap { position: relative; }
@@ -282,7 +279,7 @@ section {
 .about-text h2 span { color: var(--blue-light); transition: color 0.4s ease; }
 .about-text p { color: var(--text-muted); line-height: 1.8; margin-bottom: 16px; font-size: 0.97rem; text-align: justify; transition: color 0.4s ease;}
 
-/* --- FITUR --- */
+/* FITUR */
 #fitur { background: transparent !important; align-items: center; position: relative; }
 .section-header { text-align: center; margin-bottom: 60px; width: 100%; position: relative; z-index: 2; }
 .section-header h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; color: var(--text); transition: color 0.4s ease; }
@@ -293,7 +290,6 @@ section {
     border: 1px solid var(--border); 
     border-radius: 16px; 
     padding: 40px 32px; 
-    /* Efek hover dikembalikan mengikuti properti lama (translateY(-15px)) namun tetap smooth dengan properti baru */
     transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease, background 0.4s ease, border-color 0.4s ease;
     cursor: default;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
@@ -329,7 +325,7 @@ section {
 /* DETEKSI */
 #deteksi { background: transparent !important; text-align: center; align-items: center; min-height: auto; padding: 120px 60px; position: relative; }
 
-/* --- MODAL --- */
+/* MODAL */
 .modal-overlay { 
     position: fixed; inset: 0; background: rgba(6, 11, 25, 0.85); z-index: 2000; 
     display: flex; visibility: hidden; opacity: 0; transition: all 0.4s ease; 
@@ -344,7 +340,7 @@ section {
     transform: translateY(50px); opacity: 0; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, background 0.4s ease, border-color 0.4s ease; 
     border: 1px solid var(--border); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); 
 }
-/* Menonaktifkan efek transformasi hover khusus untuk modal agar tetap statis (dari kode lama) */
+
 .modal-box:hover { transform: none !important; border-color: var(--border) !important; }
 .modal-overlay.active .modal-box { transform: translateY(0); opacity: 1; }
 .modal-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: var(--text); transition: color 0.4s ease; }
@@ -383,7 +379,6 @@ footer { background: var(--footer-bg) !important; padding: 70px 60px 40px; trans
 .footer-col ul { list-style: none; }
 .footer-col ul li { margin-bottom: 12px; }
 
-/* FIX: Teks dipaksa sebaris menggunakan white-space: nowrap */
 .footer-col ul li a { 
     color: var(--text-muted); 
     text-decoration: none; 
@@ -402,7 +397,7 @@ footer { background: var(--footer-bg) !important; padding: 70px 60px 40px; trans
 #scrollTop.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
 #scrollTop:hover { background: #2563eb; transform: translateY(-8px) scale(1.1); }
 
-/* --- RESPONSIVE MEDIA QUERIES --- */
+/* RESPONSIVE MEDIA QUERIES */
 @media (max-width: 900px) {
     nav { padding: 16px 24px; }
     nav.scrolled { padding: 12px 24px; }
@@ -439,23 +434,21 @@ footer { background: var(--footer-bg) !important; padding: 70px 60px 40px; trans
     .sign-section-label { text-align: center !important; }
     .sign-grid { justify-content: center !important; }
 
-    /* 3. FOOTER SMART GRID 2 KOLOM (DIPERBAIKI AGAR STRUKTUR TETAP SEJAJAR & SEBARIS) */
+    /* 3. FOOTER */
     .footer-grid {
-        grid-template-columns: 1fr 1fr !important; /* Tetap mempertahankan layout 2 kolom sejajar */
-        gap: 40px 16px !important; /* Memperkecil gap horizontal agar muat teks sebaris */
+        grid-template-columns: 1fr 1fr !important;
+        gap: 40px 16px !important;
     }
     .footer-brand { grid-column: 1 / span 2 !important; }
     .footer-brand p { text-align: justify !important; }
     .footer-col:nth-child(2) { grid-column: 1 !important; }
     .footer-col:nth-child(3) { grid-column: 2 !important; }
     .footer-col:nth-child(4) { grid-column: 1 / span 2 !important; }
-    
-    /* Penskalaan ukuran font khusus mobile agar teks satu baris tidak overflow melewati batas layar */
     .footer-col ul li a {
         font-size: 0.8rem !important;
     }
 
-    /* --- SIDEBAR MOBILE OPTIMIZED SYSTEM --- */
+    /* SIDEBAR MOBILE OPTIMIZED SYSTEM */
     nav { z-index: 1060 !important; position: fixed !important; transition: background 0.4s ease, border-color 0.4s ease; }
     
     nav:has(#navLinks.active) .logo { opacity: 0 !important; visibility: hidden !important; }

@@ -110,7 +110,6 @@
 
                             <div class="block md:hidden p-4 w-full overflow-hidden">
                                 <div id="admin-cards-container" class="grid grid-cols-1 gap-4 w-full overflow-hidden">
-                                    {{-- Data Card render secara dinamis dari file JavaScript --}}
                                 </div>
                             </div>
 

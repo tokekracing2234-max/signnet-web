@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class SignLanguageController extends Controller
 {
-    // URL Backend Flask Anda
     private $flaskUrl = 'http://127.0.0.1:5000'; 
 
     public function index()

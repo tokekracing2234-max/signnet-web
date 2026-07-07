@@ -3,8 +3,7 @@
 
     <div class="dashboard-wrapper antialiased text-custom-title relative min-h-screen bg-white dark:bg-slate-950 transition-colors duration-200">
         <div class="flex flex-col md:flex-row min-h-screen w-full">
-            
-            {{-- Responsive Sidebar Container --}}
+
             <div id="sidebar-container" class="z-[999] shrink-0">
                 @include('layouts.sidebar')
             </div>
@@ -14,7 +13,6 @@
                 <div class="max-w-7xl mx-auto space-y-6 flex flex-col min-h-full justify-between">
                     
                     <div class="space-y-6 flex-grow">
-                        {{-- Header dengan Tombol Toggle Mobile --}}
                         <header class="flex items-center justify-between gap-4 pt-2 animate-card delay-1 w-full">
                             <div class="min-w-0">
                                 <span class="text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] block">Akuisisi Dataset</span>
@@ -40,14 +38,14 @@
                                     </button>
                                 </div>
 
-                                {{-- Tombol Hamburger Menu (Hanya Muncul di Mobile) --}}
+                                {{-- Tombol Hamburger Menu --}}
                                 <button id="mobileSidebarToggle" type="button" class="md:hidden flex items-center justify-center w-11 h-11 bg-slate-100 dark:bg-slate-900/80 text-slate-800 dark:text-white rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg shadow-indigo-500/5 active:scale-95 transition-all duration-200 cursor-pointer">
                                     <i class="fa-solid fa-bars text-xl"></i>
                                 </button>
                             </div>
                         </header>
 
-                        {{-- Panduan Fitur Khusus Tampilan Mobile --}}
+                        {{-- Panduan Fitur --}}
                         <div class="block sm:hidden animate-card delay-1">
                             <button onclick="openModalGuide()" class="w-full flex px-4 py-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold tracking-wide transition-all items-center justify-center gap-2 shadow-sm">
                                 <i class="fa-solid fa-circle-info text-indigo-600 dark:text-indigo-400"></i> PANDUAN FITUR

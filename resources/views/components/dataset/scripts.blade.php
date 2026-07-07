@@ -2,11 +2,10 @@
     const htmlEl = document.documentElement;
     const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // State Manajemen Data & Pagination Global
     let rawDatasetStats = [];
     let cachedTotalRows = 0;
     let currentPage = 1;
-    const rowsPerPage = 10; // Batas data per halaman, sesuaikan dengan kebutuhan Anda
+    const rowsPerPage = 10;
 
     @if(session('error'))
         document.addEventListener('DOMContentLoaded', () => {
@@ -51,14 +50,9 @@
             const data = await response.json();
             
             if (data && data.stats) {
-                // Simpan data mentah ke state global
                 rawDatasetStats = Object.entries(data.stats).map(([label, count]) => ({ label, count }));
                 cachedTotalRows = data.total || 0;
-                
-                // Reset halaman kembali ke satu saat reload data
                 currentPage = 1;
-                
-                // Distribusikan data ke fungsi render render yang terbagi per halaman
                 renderPaginatedTable();
 
                 if (data.total === 0) {
@@ -91,11 +85,8 @@
         window.requestAnimationFrame(step);
     }
 
-    // Fungsi Utama Membagi & Merender Potongan Data Berdasarkan Halaman Aktif
     function renderPaginatedTable() {
     const tbody = document.getElementById('dataset-table-body');
-    
-    // Counter animasi stat card macro
     const oldTotalRows = parseInt(document.getElementById('total-rows').innerText.replace(/,/g, '')) || 0;
     const oldTotalLabels = parseInt(document.getElementById('total-labels').innerText) || 0;
 
@@ -145,7 +136,6 @@
             </tr>`;
     }).join('');
 
-    // Animasi progress bar balance terisi
     setTimeout(() => {
         paginatedData.forEach((item, index) => {
             const bar = document.getElementById(`bar-${index}`);
@@ -156,11 +146,9 @@
         });
     }, 50);
 
-    // Perbarui text info entries dan state tombol angka navigasi bawah
     updatePaginationControls(startIndex + 1, endIndex, rawDatasetStats.length);
 }
 
-// Fungsi Pengendali Navigasi Angka dan State Tombol Disable Arrow
 function updatePaginationControls(start, end, total) {
     document.getElementById('pagination-start').innerText = start;
     document.getElementById('pagination-end').innerText = end;
@@ -171,29 +159,23 @@ function updatePaginationControls(start, end, total) {
     const nextBtn = document.getElementById('pagination-next');
     const pagesContainer = document.getElementById('pagination-pages');
 
-    // Mengatur status disabled tombol arrow prev/next
     prevBtn.disabled = currentPage === 1;
     nextBtn.disabled = currentPage === totalPages || totalPages === 0;
 
-    // Reset aksi klik arrow agar tidak menumpuk event listener
     prevBtn.onclick = () => { if(currentPage > 1) { currentPage--; renderPaginatedTable(); } };
     nextBtn.onclick = () => { if(currentPage < totalPages) { currentPage++; renderPaginatedTable(); } };
 
-    // Render susunan tombol angka halaman dinamis
     let pagesHtml = '';
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
-            // Gaya visual untuk Halaman Aktif (Premium Indigo Filled)
             pagesHtml += `<button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs bg-indigo-600 text-white border border-indigo-600 shadow-sm transition-transform cursor-pointer">${i}</button>`;
         } else {
-            // Gaya visual untuk Halaman Standar/Tidak Aktif
             pagesHtml += `<button type="button" onclick="goToPage(${i})" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-indigo-600 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white transition-all cursor-pointer">${i}</button>`;
         }
     }
     pagesContainer.innerHTML = pagesHtml;
 }
 
-// Fungsi helper lompat langsung ke halaman spesifik tertentu
 function goToPage(pageNumber) {
     currentPage = pageNumber;
     renderPaginatedTable();

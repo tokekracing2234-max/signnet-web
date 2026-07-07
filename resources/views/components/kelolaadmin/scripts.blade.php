@@ -3,7 +3,6 @@
     const htmlEl = document.documentElement;
     const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // Sinkronisasi Tema
     function handleThemeSync(theme) {
         htmlEl.setAttribute('data-theme', theme);
         if (theme === 'dark') {
@@ -19,11 +18,10 @@
     let currentActiveAdminUsername = ''; 
     let originalSelectedData = null; 
 
-    // --- STATE PAGINASI ---
+    // STATE PAGINASI 
     let currentPage = 1;
-    const rowsPerPage = 10; // Mengatur 10 data per halaman
+    const rowsPerPage = 10;
 
-    // Fungsi Pembantu Tampilkan/Sembunyikan Loader Global
     function toggleGlobalLoader(show) {
         const loader = document.getElementById('global-loader');
         if (loader) {
@@ -37,7 +35,6 @@
         }
     }
 
-    // Fetch Data Admin (Read)
     async function fetchAdminData() {
         const tbody = document.getElementById('admin-table-body');
         if (tbody) {
@@ -64,7 +61,6 @@
                     
                 animateValue('active-admins', parseInt(document.getElementById('active-admins').innerText) || 0, 1, 800);
 
-                // Reset ke halaman 1 setiap kali fetch ulang data
                 currentPage = 1;
                 renderTable(localAdminsStore);
             }
@@ -76,10 +72,9 @@
         }
     }
 
-    // Render Tabel dengan Paginasi & Penomoran Rapi
     function renderTable(admins) {
         const tbody = document.getElementById('admin-table-body');
-        const cardsContainer = document.getElementById('admin-cards-container'); // Ambil kontainer mobile
+        const cardsContainer = document.getElementById('admin-cards-container');
         if (!tbody) return;
 
         if (admins.length === 0) {
@@ -90,30 +85,21 @@
             return;
         }
 
-        // 1. Balik urutan data asli agar data terbaru berada di posisi bawah (atau sesuaikan kebutuhan)
         const reversedAdmins = admins.slice().reverse();
 
-        // 2. Hitung indeks potong untuk halaman aktif
         const indexOfLastRow = currentPage * rowsPerPage;
         const indexOfFirstRow = indexOfLastRow - rowsPerPage;
         const currentRows = reversedAdmins.slice(indexOfFirstRow, indexOfLastRow);
 
-        // Array untuk menampung HTML desktop dan mobile
         let tableHtml = '';
         let cardsHtml = '';
 
-        // 3. Loop data untuk membuat struktur Desktop dan Mobile
         currentRows.forEach((admin, index) => {
             const rowDelay = index * 40;
             const formattedDate = new Date(admin.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
-                
-            // Cari index asli di store utama agar modal edit/delete tidak salah target
             const originalIndex = admins.findIndex(a => a.id_admin === admin.id_admin);
-
-            // Penomoran berurutan absolut
             const displayIndex = indexOfFirstRow + index + 1;
 
-            // Penentuan Tombol Aksi
             let actionButtons = '';
             if (admin.username === currentActiveAdminUsername) {
                 actionButtons = `
@@ -132,7 +118,6 @@
                 `;
             }
 
-            // --- HTML UNTUK DESKTOP (ROW MURNI) ---
             tableHtml += `
                 <tr class="hover:bg-white/[0.03] border-b border-slate-200 dark:border-white/5 transition-colors animate__animated animate__fadeInUp text-slate-700 dark:text-slate-200" style="animation-delay: ${rowDelay}ms">
                     <td class="px-6 py-5 text-center">
@@ -156,7 +141,6 @@
                     </td>
                 </tr>`;
 
-            // --- HTML UNTUK MOBILE (CARD MURNI) - Menggunakan animasi Animate.css yang sama dengan desktop ---
             cardsHtml += `
                 <div class="glass glass-card-mobile p-5 mb-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/40 shadow-sm inline-block w-full text-left animate__animated animate__fadeInUp" style="animation-delay: ${rowDelay}ms;">
         <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-3 mb-3">
@@ -184,17 +168,14 @@
     </div>`;
         });
 
-        // 4. Masukkan hasil render ke kontainer masing-masing
         tbody.innerHTML = tableHtml;
         if (cardsContainer) {
             cardsContainer.innerHTML = cardsHtml;
         }
 
-        // 5. Perbarui komponen tombol angka paginasi di bawah tabel
         setupPaginationControls(admins.length);
     }
 
-    // Fungsi Generate Elemen Kontrol Paginasi (Disesuaikan dengan HTML KelolaAdmin Blade)
     function setupPaginationControls(totalItems) {
         const startEl = document.getElementById('pagination-start');
         const endEl = document.getElementById('pagination-end');
@@ -203,7 +184,6 @@
         const prevBtn = document.getElementById('pagination-prev');
         const nextBtn = document.getElementById('pagination-next');
 
-        // Pastikan semua elemen indikator text eksis sebelum diisi
         if (startEl && endEl && totalEl) {
             const startRange = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
             const endRange = Math.min(currentPage * rowsPerPage, totalItems);
@@ -215,7 +195,6 @@
 
         const totalPages = Math.ceil(totalItems / rowsPerPage);
 
-        // Atur status tombol Previous
         if (prevBtn) {
             if (currentPage === 1 || totalPages <= 1) {
                 prevBtn.setAttribute('disabled', 'true');
@@ -227,7 +206,6 @@
             prevBtn.onclick = () => changePage(currentPage - 1);
         }
 
-        // Atur status tombol Next
         if (nextBtn) {
             if (currentPage === totalPages || totalPages <= 1) {
                 nextBtn.setAttribute('disabled', 'true');
@@ -239,10 +217,9 @@
             nextBtn.onclick = () => changePage(currentPage + 1);
         }
 
-        // Render Angka Halaman ke dalam #pagination-pages
         if (pagesContainer) {
             pagesContainer.innerHTML = '';
-            if (totalPages <= 1) return; // Sembunyikan angka halaman jika hanya ada 1 halaman
+            if (totalPages <= 1) return;
 
             let buttonsHtml = '';
             for (let i = 1; i <= totalPages; i++) {
@@ -265,14 +242,12 @@
         }
     }
 
-    // Fungsi Aksi Berpindah Halaman + Auto Scroll ke Atas Kontainer Utama (Hanya berjalan di Mobile)
     function changePage(page) {
         const totalPages = Math.ceil(localAdminsStore.length / rowsPerPage);
         if (page < 1 || page > totalPages) return;
         currentPage = page;
         renderTable(localAdminsStore);
-            
-        // Perbaikan: Auto scroll hanya dipicu saat berada di resolusi layar mobile (< 768px)
+
         if (window.innerWidth < 768) {
             const mainCardContainer = document.querySelector('table')?.closest('.rounded-2xl') || document.getElementById('admin-table-body');
             if (mainCardContainer) {
@@ -294,7 +269,6 @@
         window.requestAnimationFrame(step);
     }
 
-    // Live Validation Handler
     function validateField(fieldId) {
         const el = document.getElementById(fieldId);
         const errEl = document.getElementById(`error-${fieldId}`);
@@ -370,7 +344,6 @@
         });
     }
 
-    // Toggle Password Show / Hide Logic
     function togglePasswordVisibility(inputId, buttonEl) {
         const input = document.getElementById(inputId);
         const icon = buttonEl.querySelector('i');
@@ -469,7 +442,6 @@
         modal.addEventListener('animationend', animationHandler);
     }
 
-    // Submit Form (Create / Update) dengan Konfirmasi & Peringatan Prosedural
     async function handleFormSubmit(e) {
         e.preventDefault();
             
@@ -483,7 +455,6 @@
         const newPass = document.getElementById('new_password').value;
         const confPass = document.getElementById('confirm_password').value;
 
-        // Cek jika tidak ada perubahan sama sekali pada mode edit
         if (isEdit && originalSelectedData) {
             if (currentUsername === originalSelectedData.username && 
                 currentEmail === originalSelectedData.email && 
@@ -511,15 +482,13 @@
             return;
         }
 
-        // --- PERBAIKAN: STRUKTUR TOMBOL ALERT SEJAJAR DAN SEBARIS (flex-row & w-full) ---
         let confirmationTitle = 'KONFIRMASI SIMPAN';
         let confirmationHtml = `Apakah Anda yakin ingin mendaftarkan administrator baru ke dalam sistem?`;
 
         if (isEdit) {
             confirmationTitle = 'PERBARUI PROFIL';
             let passwordWarning = '';
-                
-            // Berikan peringatan ekstra sensitif jika pengguna mengisi form perubahan password
+
             if (oldPass || newPass || confPass) {
                 passwordWarning = `
                     <div class="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-left">
@@ -539,7 +508,6 @@
             `;
         }
 
-        // Tampilkan dialog panduan interaktif menggunakan AppAlert
         AppAlert.fire('warning', confirmationTitle, `
             ${confirmationHtml}
             <div class="flex flex-row justify-center gap-3 mt-6 w-full">
@@ -552,20 +520,13 @@
             </div>
         `);
 
-        // Pengaturan UI Custom Alert Buttons
         Swal.stopTimer();
         if (Swal.getTimerProgressBar()) Swal.getTimerProgressBar().style.display = 'none';
         if (Swal.getConfirmButton()) Swal.getConfirmButton().style.display = 'none';
 
-        // Handler Batal Simpan
         document.getElementById('btn-cancel-save').addEventListener('click', () => Swal.close());
-
-        // Handler Konfirmasi Simpan
         document.getElementById('btn-confirm-save').addEventListener('click', async () => {
-            // 1. Tutup Alert Konfirmasi terlebih dahulu
             Swal.close(); 
-            
-            // 2. Munculkan Global Loader secara instan
             toggleGlobalLoader(true);
 
             const payload = {
@@ -598,8 +559,6 @@
                     body: JSON.stringify(payload)
                 });
                 const res = await response.json();
-
-                // Sembunyikan global loader sebelum memicu alert hasil
                 toggleGlobalLoader(false);
 
                 if (res.status === 'success') {
@@ -618,7 +577,6 @@
 
     // Delete Action
     function deleteAdmin(id_admin, username) {
-        // --- PERBAIKAN: STRUKTUR TOMBOL ALERT SEJAJAR DAN SEBARIS (flex-row & w-full) ---
         AppAlert.fire('warning', 'REVOKE ACCESS', `
             Akses akun resmi untuk admin <span class="text-red-400 font-bold">"${username}"</span> akan dicabut dari sistem.
             <div class="flex flex-row justify-center gap-3 mt-6 w-full">
@@ -636,10 +594,7 @@
         if (Swal.getConfirmButton()) Swal.getConfirmButton().style.display = 'none';
 
         document.getElementById('btn-confirm-delete').addEventListener('click', function() {
-            // 1. Tutup SweetAlert Konfirmasi secara sinkronus agar transisi lancar
             Swal.close();
-            
-            // 2. Aktifkan Global Loader
             toggleGlobalLoader(true);
 
             fetch(`/admin/kelola-admin/delete/${id_admin}`, {
@@ -651,7 +606,6 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Sembunyikan global loader sebelum memunculkan status alert
                 toggleGlobalLoader(false);
 
                 if (data.status === 'success') {

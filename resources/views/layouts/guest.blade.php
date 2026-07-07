@@ -71,7 +71,6 @@
         </div>
 
         <script>
-            // PERBAIKAN BUG: Mengganti logika pengecekan karena halaman guest Anda default gelap (dark mode / bg-slate-950)
             const getSwalTheme = () => {
                 const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark') || true; 
                 return {

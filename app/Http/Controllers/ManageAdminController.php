@@ -30,13 +30,11 @@ class ManageAdminController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // AMBIL USERNAME AKTIF: Kita ambil username dari admin yang sedang login.
-            // Jika Auth session kosong, kita set default 'admin' sebagai pengaman.
             $current_username = Auth::user()?->username ?: (Auth::guard('admin')->user()?->username ?: 'admin');
 
             return response()->json([
                 'admins' => $admins,
-                'current_username' => $current_username // Dikirim ke JS frontend untuk filter tombol
+                'current_username' => $current_username
             ], 200);
 
         } catch (\Exception $e) {
@@ -118,7 +116,6 @@ class ManageAdminController extends Controller
 
     // LOGIKA PENGECEKAN PASSWORD LAMA
     if ($request->filled('password')) {
-        // Cek apakah password lama di database cocok dengan input
         if (!Hash::check($request->old_password, $admin->password)) {
             return response()->json(['status' => 'error', 'message' => 'Password lama salah!'], 422);
         }
@@ -145,7 +142,6 @@ class ManageAdminController extends Controller
                 ], 404);
             }
 
-            // KUNCI BACKEND: Amankan username 'admin' secara mutlak dari request hapus luar
             if ($admin->username === 'admin') {
                 return response()->json([
                     'status' => 'error',

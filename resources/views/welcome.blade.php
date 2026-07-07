@@ -250,7 +250,6 @@
             });
         }
 
-        // FUNGSI BARU: Intersection Observer untuk mengaktifkan kelas .show pada .animate-item
         function initScrollAnimations() {
             const animatedItems = document.querySelectorAll('.animate-item');
             
@@ -264,7 +263,6 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('show');
-                        // Opsional: unobserve jika ingin animasi hanya berjalan sekali saja
                         observer.unobserve(entry.target);
                     }
                 });

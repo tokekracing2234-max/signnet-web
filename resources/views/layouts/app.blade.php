@@ -52,8 +52,6 @@
 
             @keyframes spin { to { transform: rotate(1turn); } }
             .swal2-container { z-index: 999999 !important; }
-            
-            /* SweetAlert Custom SVG Tik & Lingkaran */
             .swal-custom-icon { position: relative; width: 80px; height: 80px; margin: 0 auto 20px; border: 4px solid; border-radius: 50%; }
             .swal-icon-wrapper { width: 80px; height: 80px; margin: 10px auto 20px; }
             .ft-green-tick { width: 80px; height: 80px; border-radius: 50%; display: block; stroke-width: 2; stroke: #22c55e; stroke-miterlimit: 10; box-shadow: inset 0px 0px 0px #22c55e; animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
@@ -187,12 +185,10 @@
             };
 
             document.addEventListener('DOMContentLoaded', function() {
-                // Notifikasi Otomatis dari Flash Session Laravel Controller
                 @if(session('success')) AppAlert.fire('success', 'BERHASIL', "{{ session('success') }}"); @endif
                 @if(session('error') || $errors->any()) AppAlert.fire('error', 'GAGAL', "{{ session('error') ?? $errors->first() }}"); @endif
                 @if(session('info')) AppAlert.fire('info', 'INFO', "{{ session('info') }}"); @endif
 
-                // Handler Global Loader
                 const loader = document.getElementById('global-loader');
                 const showLoader = () => { 
                     loader.classList.remove('hidden'); 
@@ -203,7 +199,6 @@
                     loader.classList.add('hidden');
                 };
 
-                // Trigger Loader saat kirim form/simpan data backend dengan konfirmasi khusus logout
                 document.addEventListener('submit', function (e) {
                     if (e.target && e.target.id === 'logout-form') {
                         if (!e.target.hasAttribute('data-confirmed')) {
@@ -273,7 +268,6 @@
                     }
                 }, true);
 
-                // Sinkronisasi perubahan class HTML saat event themeChanged dipicu dari sidebar
                 window.addEventListener('themeChanged', (e) => {
                     if (e.detail.theme === 'light') {
                         document.documentElement.classList.remove('dark');

@@ -182,15 +182,12 @@
 
     {{-- MODAL INFO --}}
     <div id="infoModal" class="fixed inset-0 z-[1000] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">  
-        {{-- Overlay Background terpisah untuk handle klik luar --}}
         <div class="absolute inset-0" onclick="toggleModal(false)"></div>
 
         {{-- Konten Utama Modal --}}
         <div id="modalContent" class="glass-card modal-spec-card c-bg-chart w-full max-w-lg p-7 rounded-[2rem] shadow-2xl space-y-5 relative z-10">   
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <h3 id="modalTitle" class="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2.5"></h3>
-                
-                {{-- Tombol X --}}
                 <button type="button" onclick="toggleModal(false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-lg cursor-pointer">
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>

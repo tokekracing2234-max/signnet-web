@@ -9,13 +9,11 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
-    /* Reset dasar tanpa efek aneh-aneh */
     * { 
         touch-action: manipulation; 
         box-sizing: border-box; 
     }
     
-    /* STRATEGI 1: Hanya animasi elemen makro & teks utama */
     .dashboard-wrapper, 
     .main-content,
     h1, h3, h4, p, span, i {
@@ -24,7 +22,6 @@
         will-change: background-color, color;
     }
     
-    /* STRATEGI 2: Optimasi komponen Glass */
     .glass { 
         background: var(--glass-bg); 
         border: 1px solid var(--glass-border); 
@@ -36,7 +33,6 @@
         transition: background-color 0.1s ease-out, border-color 0.1s ease-out;
     }
 
-    /* Efek angkat (Hover) diisolasi total */
     .hover-lift {
         transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
     }
@@ -126,7 +122,6 @@
         opacity: 0; 
     }
 
-    /* Kelas Utility untuk Delay Sekuensial */
     .delay-1 { animation-delay: 0.05s; }
     .delay-2 { animation-delay: 0.12s; }
     .delay-3 { animation-delay: 0.19s; }
@@ -138,7 +133,6 @@
     .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
 
-    /* Gaya Khusus Tombol Navigasi Panah Pagination Kelola Admin */
     .pagination-arrow-btn {
         display: inline-flex;
         align-items: center;
@@ -178,7 +172,7 @@
             overflow-y: hidden !important;
             position: relative;
             z-index: 10;
-            padding-bottom: 0.5rem; /* Memberi jarak aman sebelum batas potong pagination */
+            padding-bottom: 0.5rem;
         }
         
         #dataset-table-body { 
@@ -204,7 +198,6 @@
             padding: 1rem;
             position: relative;
             z-index: 10;
-            /* Mengoptimalkan hardware-acceleration rendering saat animasi berjalan */
             backface-visibility: hidden;
             will-change: transform, opacity;
         }

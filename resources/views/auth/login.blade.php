@@ -7,15 +7,14 @@
         :root {
             --blue: #3b82f6;
             --blue-light: #60a5fa;
-            
-            /* DARK MODE CYBERPUNK SEAMLESS GRADIENT */
+
             --dark-bg: linear-gradient(180deg, 
-                #050914 0%,    /* Beranda: Ultra Deep Space */
-                #0a122c 22%,   /* Tentang: Cosmic Navy */
-                #151233 48%,   /* Fitur: Deep Tech Violet */
-                #0b1636 72%,   /* Daftar Isyarat: Cyber Blue */
-                #111c44 90%,   /* Deteksi: Deep Card Blue */
-                #03050a 100%   /* Footer: Jet Black */
+                #050914 0%,
+                #0a122c 22%,
+                #151233 48%,
+                #0b1636 72%,
+                #111c44 90%,
+                #03050a 100%
             );
             
             --dark-card: linear-gradient(145deg, #0d1730 0%, #132247 100%);
@@ -27,7 +26,6 @@
             --hero-overlay: linear-gradient(135deg, rgba(6, 11, 25, 0.85) 0%, rgba(17, 28, 68, 0.7) 100%);
             --nav-bg: rgba(6, 11, 25, 0.75);
 
-            /* LOGIN CARD VARIABLES (DARK SYSTEM) */
             --bg-card: var(--dark-card);
             --border-login: var(--border);
             --border-focus: var(--blue-light);
@@ -41,15 +39,14 @@
         [data-theme="light"] {
             --blue: #2563eb;
             --blue-light: #3b82f6;
-            
-            /* LIGHT MODE DYNAMIC FRUITY GRADIENT */
+
             --dark-bg: linear-gradient(180deg, 
-                #f0f7ff 0%,    /* Beranda: Fresh Sky Clean */
-                #e0e7ff 20%,   /* Tentang: Soft Lavender Mist */
-                #e0f2fe 45%,   /* Fitur: Ocean Ice Blue */
-                #f0fdf4 70%,   /* Daftar Isyarat: Fresh Mint Green */
-                #fff1f2 88%,   /* Deteksi: Warm Soft Coral */
-                #f8fafc 100%   /* Footer: Clean Slate */
+                #f0f7ff 0%,
+                #e0e7ff 20%,
+                #e0f2fe 45%,
+                #f0fdf4 70%,
+                #fff1f2 88%,
+                #f8fafc 100%
             );
             
             --dark-card: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%); 
@@ -61,7 +58,6 @@
             --hero-overlay: linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(224, 231, 255, 0.6) 100%);
             --nav-bg: rgba(239, 246, 255, 0.75);
 
-            /* LOGIN CARD VARIABLES (LIGHT SYSTEM) */
             --bg-card: #ffffff;
             --border-login: var(--border);
             --border-focus: var(--blue);
@@ -104,7 +100,7 @@
             to { transform: translateY(-15px); }
         }
 
-        /* --- NAVBAR DESKTOP BASE --- */
+        /* NAVBAR DESKTOP BASE */
         nav { 
             position: fixed; top: 0; left: 0; right: 0; z-index: 1030; 
             display: flex; align-items: center; justify-content: space-between; 
@@ -157,7 +153,7 @@
         .theme-toggle-btn { background: var(--dark-card2); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.4s ease; }
         .theme-toggle-btn:hover { border-color: var(--blue); color: var(--blue); transform: scale(1.1) rotate(15deg); }
 
-        /* --- BUTTON MENUS & LAYERS UTILITY --- */
+        /* BUTTON MENUS & LAYERS UTILITY */
         .menu-toggle-btn {
             display: none;
             background: var(--dark-card2);
@@ -200,8 +196,7 @@
             z-index: 1; 
         }
         .login-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        
-        /* PERBAIKAN ANIMASI CARD: Mengoptimalkan transisi hardware acceleration */
+
         .card { 
             background: var(--bg-card); 
             border: 1px solid var(--border-login); 
