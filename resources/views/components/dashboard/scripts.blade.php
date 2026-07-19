@@ -37,6 +37,7 @@
         
         if (optionsList) optionsList.classList.add('hidden');
         if (arrow) arrow.classList.remove('rotate-180');
+
         renderCurrentMatrix();
     }
 
@@ -248,13 +249,12 @@
         if (accAngkaEl) animateValue(accAngkaEl, 0, (accKategori.angka || 0) * 100, 600, true);
 
         rawMatrixPerKategori = data.confusion_matrix_per_kategori || {};
-        renderCurrentMatrix();
 
         if (data.classification_report) {
             globalClassificationReport = data.classification_report;
-            populateLabelSelect(data.classification_report);
-            renderDistribution(data.classification_report);
         }
+
+        renderCurrentMatrix();
     }
 
     function populateLabelSelect(reportData) {
