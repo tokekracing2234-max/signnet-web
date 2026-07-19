@@ -26,17 +26,25 @@
                         </header>
 
                         {{-- Card-card Atas --}}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             <div class="glass-card c-bg-1 p-6 rounded-[2rem] relative overflow-hidden animate-card delay-2 border">
                                 <span class="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Total Dataset</span>
                                 <h2 id="total-data" class="text-4xl font-black mt-2 text-indigo-600 dark:text-indigo-400">-</h2>
                                 <div class="absolute -right-2 -bottom-4 text-indigo-500/20 text-6xl rotate-12"><i class="fa-solid fa-database"></i></div>
                             </div>
+
                             <div class="glass-card c-bg-2 p-6 rounded-[2rem] relative overflow-hidden animate-card delay-3 border">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Akurasi</span>
-                                <h2 id="accuracy-val" class="text-4xl font-black mt-2 text-emerald-600 dark:text-emerald-400">0%</h2>
-                                <div class="absolute -right-2 -bottom-4 text-emerald-500/20 text-6xl rotate-12"><i class="fa-solid fa-bullseye"></i></div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Akurasi Huruf</span>
+                                <h2 id="accuracy-val-huruf" class="text-4xl font-black mt-2 text-emerald-600 dark:text-emerald-400">0%</h2>
+                                <div class="absolute -right-2 -bottom-4 text-emerald-500/20 text-6xl rotate-12"><i class="fa-solid fa-font"></i></div>
                             </div>
+
+                            <div class="glass-card c-bg-2 p-6 rounded-[2rem] relative overflow-hidden animate-card delay-3 border">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Akurasi Angka</span>
+                                <h2 id="accuracy-val-angka" class="text-4xl font-black mt-2 text-emerald-600 dark:text-emerald-400">0%</h2>
+                                <div class="absolute -right-2 -bottom-4 text-emerald-500/20 text-6xl rotate-12"><i class="fa-solid fa-hashtag"></i></div>
+                            </div>
+
                             <div class="glass-card c-bg-3 p-6 rounded-[2rem] relative overflow-hidden sm:col-span-2 lg:col-span-1 animate-card delay-4 border">
                                 <span class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Total Label</span>
                                 <h2 id="total-labels" class="text-4xl font-black mt-2 text-amber-600 dark:text-amber-400">-</h2>
@@ -109,12 +117,14 @@
                                         </h3>
                                         
                                         <div class="relative inline-block text-left z-50">
-                                            <button id="custom-select-trigger" onclick="toggleCustomDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[115px] flex items-center justify-between cursor-pointer relative">
-                                                <span id="custom-select-text">Pilih Label</span>
-                                                <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="custom-select-arrow"></i>
+                                            <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
+                                                <span id="matrix-select-text">Huruf (A-Z)</span>
+                                                <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
                                             </button>
-                                            <ul id="custom-select-options" class="hidden absolute right-0 mt-1 w-[115px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
-                                                </ul>
+                                            <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
+                                                <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('huruf', 'Huruf (A-Z)')">Huruf (A-Z)</li>
+                                                <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('angka', 'Angka (0-9)')">Angka (0-9)</li>
+                                            </ul>
                                         </div>
                                     </div>
 
