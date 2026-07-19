@@ -276,12 +276,8 @@
         Object.keys(reportData)
             .filter(k => {
                 const cleanKey = k.toLowerCase().trim();
-                // Filter ketat membuang teks ringkasan bawaan scikit-learn
                 if (['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey)) return false;
-                
-                // Pisahkan berdasarkan tipe data string (A-Z) dan digit (0-9)[cite: 2]
-                const isDigit = /^\d+$/.test(k);
-                return currentMatrixCategory === 'angka' ? isDigit : !isDigit;
+                return reportData[k] && reportData[k].support > 0;
             })
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
             .forEach(label => {
