@@ -10,9 +10,6 @@ let isSwitchingModel = false;
 let lastPredictedLabel = "-";
 let consecutiveCount = 0;
 const CONSECUTIVE_NEEDED = 2;
-
-// modelCache[kategori] = { session: ort.InferenceSession, labels: string[] }
-// Lazy-loaded per kategori: kategori yang belum pernah dipakai belum ada di sini.
 let modelCache = {};
 
 window.currentDetectionMode = 'huruf';
@@ -49,12 +46,6 @@ async function saveModelToStorage(dbName, storeName, key, data) {
     });
 }
 
-/**
- * Hapus cache versi LAMA, tapi HANYA milik kategori yang sama (keyPrefix).
- * Penting: jangan hapus semua key selain currentKey seperti versi lama,
- * karena itu akan ikut menghapus cache kategori lain yang sedang tidak
- * aktif (misal lagi di mode huruf, tapi cache model angka ikut kehapus).
- */
 async function clearOldModels(dbName, storeName, currentKey, keyPrefix) {
     return new Promise((resolve) => {
         const openRequest = indexedDB.open(dbName, 1);
@@ -77,11 +68,6 @@ async function clearOldModels(dbName, storeName, currentKey, keyPrefix) {
     });
 }
 
-/**
- * Load (atau ambil dari cache memori) model + labels untuk satu kategori
- * ('huruf' atau 'angka'). Kalau kategori ini sudah pernah dimuat sebelumnya
- * di sesi ini, langsung return dari modelCache tanpa network call.
- */
 async function loadModelForKategori(kategori) {
     if (modelCache[kategori]) {
         return modelCache[kategori];
@@ -200,11 +186,6 @@ window.updateButtonVisuals = function(mode) {
     }
 }
 
-/**
- * Ganti mode deteksi. Kalau model kategori tujuan belum pernah dimuat,
- * fetch dulu di sini (ada jeda, status "Memuat model..." ditampilkan).
- * Kalau sudah pernah dimuat sebelumnya di sesi ini, switch-nya instan.
- */
 window.changeMode = async function(mode) {
     if (mode === window.currentDetectionMode) return;
 
@@ -219,7 +200,6 @@ window.changeMode = async function(mode) {
     statusText.style.display = 'block';
 
     if (modelCache[mode]) {
-        // Model kategori ini sudah pernah dimuat -> switch instan, tanpa network call.
         statusText.innerHTML = mode === 'huruf'
             ? '<i class="fas fa-font" style="color: #3b82f6;"></i> Mode <b>HURUF (A - Z)</b> aktif'
             : '<i class="fas fa-hashtag" style="color: #10b981;"></i> Mode <b>ANGKA (0 - 9)</b> aktif';
@@ -228,7 +208,6 @@ window.changeMode = async function(mode) {
         return;
     }
 
-    // Model kategori ini belum pernah dimuat -> fetch sekarang, prediksi di-pause dulu.
     isSwitchingModel = true;
     statusText.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memuat model ${mode.toUpperCase()} untuk pertama kali...`;
 
@@ -306,13 +285,6 @@ function drawGuide(ctx, width, height) {
     ctx.fillText("POSISIKAN TANGAN DI SINI", width / 2, rectY - 14);
 }
 
-/**
- * Jalankan prediksi pakai model kategori yang SEDANG AKTIF
- * (window.currentDetectionMode). Tidak ada lagi heuristik manual
- * V<->2 / W<->6-7-8 / F<->9 / B<->4 / O<->0 atau filter regex angka,
- * karena model huruf & angka sekarang memang dua model terpisah yang
- * masing-masing hanya mengenal kelasnya sendiri.
- */
 async function runLocalPrediction(features) {
     const active = modelCache[window.currentDetectionMode];
     if (!active || !active.session) return;
@@ -336,6 +308,17 @@ async function runLocalPrediction(features) {
         console.log(`[${window.currentDetectionMode}] Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
 
         if (active.labels.length > 0 && predictedIndex < active.labels.length) {
+
+            if (stringLabel === "unknown") {
+                consecutiveCount = 0;
+                lastPredictedLabel = "-";
+                updateUI("-", 0);
+                if (!isModeChangingNotification) {
+                    statusText.innerHTML = '<i class="fas fa-hand-paper" style="color: #f59e0b;"></i> Gestur salah mode / tidak dikenali...';
+                }
+                return;
+            }
+
             if (parseFloat(confidenceScore) > 25.0) {
 
                 if (stringLabel === lastPredictedLabel) {
@@ -435,7 +418,7 @@ function onResults(results) {
     drawGuide(canvasCtx, canvasElement.width, canvasElement.height);
 
     if (isSwitchingModel) {
-        // Lagi proses ganti/unduh model kategori lain -> jangan prediksi dulu.
+        
         return;
     }
 
