@@ -301,6 +301,25 @@ async function runLocalPrediction(features) {
         const predictedIndex = Number(labelTensor.data[0]);
         const stringLabel = active.labels[predictedIndex] || "-";
 
+        const isDigit = (val) => /^\d+$/.test(val); 
+        const modeMatch = (window.currentDetectionMode === 'huruf' && !isDigit(stringLabel)) || 
+                          (window.currentDetectionMode === 'angka' && isDigit(stringLabel));
+
+       if (!modeMatch) {
+            consecutiveCount = 0;
+            lastPredictedLabel = "-";
+            updateUI("-", 0);
+
+            isModeChangingNotification = true; 
+            statusText.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> Mode ${window.currentDetectionMode.toUpperCase()} aktif. Gestur tidak sesuai!`;
+
+            setTimeout(() => { 
+                isModeChangingNotification = false; 
+            }, 1500);
+            
+            return;
+        }
+
         let confidenceScore = "0";
         if (probTensor?.data) {
             confidenceScore = (probTensor.data[predictedIndex] * 100).toFixed(1);
@@ -308,17 +327,6 @@ async function runLocalPrediction(features) {
         console.log(`[${window.currentDetectionMode}] Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
 
         if (active.labels.length > 0 && predictedIndex < active.labels.length) {
-
-            if (stringLabel === "unknown") {
-                consecutiveCount = 0;
-                lastPredictedLabel = "-";
-                updateUI("-", 0);
-                if (!isModeChangingNotification) {
-                    statusText.innerHTML = '<i class="fas fa-hand-paper" style="color: #f59e0b;"></i> Gestur salah mode / tidak dikenali...';
-                }
-                return;
-            }
-
             if (parseFloat(confidenceScore) > 25.0) {
 
                 if (stringLabel === lastPredictedLabel) {
@@ -418,7 +426,6 @@ function onResults(results) {
     drawGuide(canvasCtx, canvasElement.width, canvasElement.height);
 
     if (isSwitchingModel) {
-        
         return;
     }
 
