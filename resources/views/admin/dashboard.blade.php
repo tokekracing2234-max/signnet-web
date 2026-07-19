@@ -40,8 +40,8 @@
                             </div>
 
                             <div class="glass-card c-bg-2 p-6 rounded-[2rem] relative overflow-hidden animate-card delay-3 border">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Akurasi Angka</span>
-                                <h2 id="accuracy-val-angka" class="text-4xl font-black mt-2 text-emerald-600 dark:text-emerald-400">0%</h2>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">Akurasi Angka</span>
+                                <h2 id="accuracy-val-angka" class="text-4xl font-black mt-2 text-rose-600 dark:text-rose-400">0%</h2>
                                 <div class="absolute -right-2 -bottom-4 text-emerald-500/20 text-6xl rotate-12"><i class="fa-solid fa-hashtag"></i></div>
                             </div>
 
