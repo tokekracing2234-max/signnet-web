@@ -225,24 +225,74 @@
                 </button>
             </div>
 
+            {{-- Tab switcher Huruf / Angka --}}
+            <div class="px-6 pt-5">
+                <div class="flex bg-indigo-900/10 dark:bg-white/5 p-1 rounded-xl border border-indigo-500/20 dark:border-white/10 w-fit">
+                    <button onclick="switchResultTab('huruf')" id="tab-btn-huruf"
+                        class="px-5 py-1.5 rounded-lg text-[10px] font-black transition-all bg-indigo-600 text-white">
+                        HURUF
+                    </button>
+                    <button onclick="switchResultTab('angka')" id="tab-btn-angka"
+                        class="px-5 py-1.5 rounded-lg text-[10px] font-black transition-all text-indigo-900 dark:text-slate-400">
+                        ANGKA
+                    </button>
+                </div>
+            </div>
+
             <div class="p-6 md:p-8 overflow-y-auto custom-scroll space-y-8">
-                <div class="relative overflow-hidden bg-indigo-600/20 border border-indigo-500/30 p-8 rounded-[2rem] text-center">
-                    <div class="relative z-10">
-                        <span class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em]">Akurasi Keseluruhan</span>
-                        <div id="accuracy-value" class="text-6xl md:text-7xl font-black text-slate-800 dark:text-white mt-2 mb-1">0%</div>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs italic">Dihitung berdasarkan Testing Set (80/20 split)</p>
+
+                {{-- Panel Huruf --}}
+                <div id="result-panel-huruf" class="space-y-8">
+                    <div id="result-empty-huruf" class="hidden text-center py-10 text-xs text-slate-500 font-bold uppercase tracking-widest">
+                        Model huruf belum ditraining / data belum cukup.
                     </div>
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                    <div id="result-content-huruf">
+                        <div class="relative overflow-hidden bg-indigo-600/20 border border-indigo-500/30 p-8 rounded-[2rem] text-center">
+                            <div class="relative z-10">
+                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em]">Akurasi Huruf</span>
+                                <div id="accuracy-value-huruf" class="text-6xl md:text-7xl font-black text-slate-800 dark:text-white mt-2 mb-1">0%</div>
+                                <p id="fit-status-huruf" class="text-slate-500 dark:text-slate-400 text-xs italic">Dihitung berdasarkan Testing Set</p>
+                            </div>
+                            <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                        </div>
+
+                        <div class="space-y-4 mt-6">
+                            <div class="flex items-center gap-3">
+                                <div class="h-px flex-1 bg-indigo-500/20"></div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-slate-500">Analisis F1-Score Per Label</span>
+                                <div class="h-px flex-1 bg-indigo-500/20"></div>
+                            </div>
+                            <div id="report-table-container-huruf" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-px flex-1 bg-indigo-500/20"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-slate-500">Analisis F1-Score Per Label</span>
-                        <div class="h-px flex-1 bg-indigo-500/20"></div>
+                {{-- Panel Angka --}}
+                <div id="result-panel-angka" class="space-y-8 hidden">
+                    <div id="result-empty-angka" class="hidden text-center py-10 text-xs text-slate-500 font-bold uppercase tracking-widest">
+                        Model angka belum ditraining / data belum cukup.
                     </div>
-                    <div id="report-table-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                    <div id="result-content-angka">
+                        <div class="relative overflow-hidden bg-indigo-600/20 border border-indigo-500/30 p-8 rounded-[2rem] text-center">
+                            <div class="relative z-10">
+                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em]">Akurasi Angka</span>
+                                <div id="accuracy-value-angka" class="text-6xl md:text-7xl font-black text-slate-800 dark:text-white mt-2 mb-1">0%</div>
+                                <p id="fit-status-angka" class="text-slate-500 dark:text-slate-400 text-xs italic">Dihitung berdasarkan Testing Set</p>
+                            </div>
+                            <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                        </div>
+
+                        <div class="space-y-4 mt-6">
+                            <div class="flex items-center gap-3">
+                                <div class="h-px flex-1 bg-indigo-500/20"></div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-slate-500">Analisis F1-Score Per Label</span>
+                                <div class="h-px flex-1 bg-indigo-500/20"></div>
+                            </div>
+                            <div id="report-table-container-angka" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
 
             <div class="p-6 bg-slate-900/10 dark:bg-slate-950/50 border-t border-indigo-500/20">

@@ -4,15 +4,18 @@ const canvasCtx = canvasElement.getContext('2d');
 const statusText = document.getElementById('status');
 
 let lastPredictTime = 0;
-let onnxSession = null;
-let classLabels = [];
 let isModeChangingNotification = false;
+let isSwitchingModel = false;
 
 let lastPredictedLabel = "-";
 let consecutiveCount = 0;
 const CONSECUTIVE_NEEDED = 2;
 
-window.currentDetectionMode = 'huruf'; 
+// modelCache[kategori] = { session: ort.InferenceSession, labels: string[] }
+// Lazy-loaded per kategori: kategori yang belum pernah dipakai belum ada di sini.
+let modelCache = {};
+
+window.currentDetectionMode = 'huruf';
 
 async function getStoredModel(dbName, storeName, key) {
     return new Promise((resolve) => {
@@ -46,7 +49,13 @@ async function saveModelToStorage(dbName, storeName, key, data) {
     });
 }
 
-async function clearOldModels(dbName, storeName, currentKey) {
+/**
+ * Hapus cache versi LAMA, tapi HANYA milik kategori yang sama (keyPrefix).
+ * Penting: jangan hapus semua key selain currentKey seperti versi lama,
+ * karena itu akan ikut menghapus cache kategori lain yang sedang tidak
+ * aktif (misal lagi di mode huruf, tapi cache model angka ikut kehapus).
+ */
+async function clearOldModels(dbName, storeName, currentKey, keyPrefix) {
     return new Promise((resolve) => {
         const openRequest = indexedDB.open(dbName, 1);
         openRequest.onsuccess = function() {
@@ -56,7 +65,7 @@ async function clearOldModels(dbName, storeName, currentKey) {
             const getAllKeys = store.getAllKeys();
             getAllKeys.onsuccess = function() {
                 getAllKeys.result.forEach(key => {
-                    if (key !== currentKey) {
+                    if (key !== currentKey && String(key).startsWith(keyPrefix)) {
                         store.delete(key);
                         console.log(`🗑️ Cache lama dihapus: ${key}`);
                     }
@@ -68,71 +77,93 @@ async function clearOldModels(dbName, storeName, currentKey) {
     });
 }
 
+/**
+ * Load (atau ambil dari cache memori) model + labels untuk satu kategori
+ * ('huruf' atau 'angka'). Kalau kategori ini sudah pernah dimuat sebelumnya
+ * di sesi ini, langsung return dari modelCache tanpa network call.
+ */
+async function loadModelForKategori(kategori) {
+    if (modelCache[kategori]) {
+        return modelCache[kategori];
+    }
+
+    const DB_NAME = "SignNetCache";
+    const STORE_NAME = "models";
+    const KEY_PREFIX = `rf_model_${kategori}_`;
+
+    const options = {
+        executionProviders: ['wasm'],
+        enableCpuMemArena: true,
+        enableMemPattern: true,
+        extra: { session: { set_denormal_as_zero: "1" } }
+    };
+
+    statusText.style.display = 'block';
+    statusText.innerHTML = `<i class="fas fa-search"></i> Memeriksa versi model ${kategori.toUpperCase()}...`;
+
+    const labelsResponse = await fetch(`/models/labels_${kategori}.json`);
+    if (!labelsResponse.ok) {
+        throw new Error(`Gagal memuat labels_${kategori}.json dari server`);
+    }
+    const labels = await labelsResponse.json();
+
+    let serverVersion = "default";
+    try {
+        const versionRes = await fetch(`/models/model_version_${kategori}.txt?t=` + Date.now());
+        if (versionRes.ok) {
+            serverVersion = (await versionRes.text()).trim();
+        }
+    } catch (e) {
+        console.warn(`Gagal fetch versi model ${kategori}, pakai default`);
+    }
+
+    const MODEL_KEY = `${KEY_PREFIX}${serverVersion}`;
+    console.log(`[${kategori}] Model version: ${serverVersion} | Cache key: ${MODEL_KEY}`);
+
+    statusText.innerHTML = `<i class="fas fa-search"></i> Memeriksa cache lokal model ${kategori.toUpperCase()}...`;
+    let cachedBuffer = await getStoredModel(DB_NAME, STORE_NAME, MODEL_KEY);
+
+    let modelBuffer;
+
+    if (!cachedBuffer) {
+        statusText.innerHTML = `<i class="fas fa-cloud-download-alt"></i> Mengunduh Model ${kategori.toUpperCase()} (Pertama kali saja)...`;
+
+        const response = await fetch(`/models/rf_model_${kategori}.onnx.gz`);
+        if (!response.ok) throw new Error(`Gagal download rf_model_${kategori}.onnx.gz dari server`);
+
+        const compressedBuffer = await response.arrayBuffer();
+
+        statusText.innerHTML = `<i class="fas fa-save"></i> Menyimpan model ${kategori.toUpperCase()} ke cache lokal...`;
+        await saveModelToStorage(DB_NAME, STORE_NAME, MODEL_KEY, compressedBuffer);
+        console.log(`Model gz [${kategori}] berhasil disimpan ke IndexedDB!`);
+
+        await clearOldModels(DB_NAME, STORE_NAME, MODEL_KEY, KEY_PREFIX);
+
+        statusText.innerHTML = `<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model ${kategori.toUpperCase()}...`;
+        const uint8 = new Uint8Array(compressedBuffer);
+        modelBuffer = pako.ungzip(uint8).buffer;
+
+    } else {
+        console.log(`[CACHE HIT] Model ${kategori} ditemukan di cache lokal!`);
+        statusText.innerHTML = `<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model ${kategori.toUpperCase()} dari cache...`;
+        const uint8 = new Uint8Array(cachedBuffer);
+        modelBuffer = pako.ungzip(uint8).buffer;
+    }
+
+    statusText.innerHTML = `<i class="fas fa-bolt"></i> Mengaktifkan model ${kategori.toUpperCase()}...`;
+    const session = await ort.InferenceSession.create(modelBuffer, options);
+    console.log(`ONNX Session [${kategori}] berhasil diaktifkan!`);
+
+    modelCache[kategori] = { session, labels };
+    return modelCache[kategori];
+}
+
 async function initModelAndLabels() {
     try {
         statusText.style.display = 'block';
         statusText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inisialisasi Model AI...';
 
-        const labelsResponse = await fetch('/models/labels.json');
-        classLabels = await labelsResponse.json();
-
-        const options = {
-            executionProviders: ['wasm'],
-            enableCpuMemArena: true,
-            enableMemPattern: true,
-            extra: { session: { set_denormal_as_zero: "1" } }
-        };
-
-        const DB_NAME = "SignNetCache";
-        const STORE_NAME = "models";
-
-        statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa versi model...';
-        let serverVersion = "default";
-        try {
-            const versionRes = await fetch('/models/model_version.txt?t=' + Date.now());
-            if (versionRes.ok) {
-                serverVersion = (await versionRes.text()).trim();
-            }
-        } catch (e) {
-            console.warn("Gagal fetch versi, pakai default");
-        }
-
-        const MODEL_KEY = "rf_model_" + serverVersion;
-        console.log(`Model version: ${serverVersion} | Cache key: ${MODEL_KEY}`);
-
-        statusText.innerHTML = '<i class="fas fa-search"></i> Memeriksa cache lokal...';
-        let cachedBuffer = await getStoredModel(DB_NAME, STORE_NAME, MODEL_KEY);
-
-        let modelBuffer;
-
-        if (!cachedBuffer) {
-            statusText.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Mengunduh Model Terkompresi (Pertama kali saja)...';
-
-            const response = await fetch('/models/rf_model.onnx.gz');
-            if (!response.ok) throw new Error("Gagal download file .onnx.gz dari server");
-
-            const compressedBuffer = await response.arrayBuffer();
-
-            statusText.innerHTML = '<i class="fas fa-save"></i> Menyimpan ke cache lokal...';
-            await saveModelToStorage(DB_NAME, STORE_NAME, MODEL_KEY, compressedBuffer);
-            console.log("Model gz berhasil disimpan ke IndexedDB!");
-
-            await clearOldModels(DB_NAME, STORE_NAME, MODEL_KEY);
-
-            statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak model...';
-            const uint8 = new Uint8Array(compressedBuffer);
-            modelBuffer = pako.ungzip(uint8).buffer;
-
-        } else {
-            console.log("[CACHE HIT] Model ditemukan di cache lokal!");
-            statusText.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Mengekstrak dari cache...';
-            const uint8 = new Uint8Array(cachedBuffer);
-            modelBuffer = pako.ungzip(uint8).buffer;
-        }
-
-        statusText.innerHTML = '<i class="fas fa-bolt"></i> Mengaktifkan sistem deteksi...';
-        onnxSession = await ort.InferenceSession.create(modelBuffer, options);
-        console.log("ONNX Session berhasil diaktifkan!");
+        await loadModelForKategori(window.currentDetectionMode);
 
         statusText.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> AI Siap! Posisikan tangan Anda';
     } catch (error) {
@@ -144,7 +175,7 @@ async function initModelAndLabels() {
 window.updateButtonVisuals = function(mode) {
     const btnHuruf = document.getElementById('btnModeHuruf');
     const btnAngka = document.getElementById('btnModeAngka');
-    
+
     if (btnHuruf && btnAngka) {
         const style = getComputedStyle(document.documentElement);
         const textMutedColor = style.getPropertyValue('--text-muted').trim() || '#71717a';
@@ -169,25 +200,50 @@ window.updateButtonVisuals = function(mode) {
     }
 }
 
-window.changeMode = function(mode) {
+/**
+ * Ganti mode deteksi. Kalau model kategori tujuan belum pernah dimuat,
+ * fetch dulu di sini (ada jeda, status "Memuat model..." ditampilkan).
+ * Kalau sudah pernah dimuat sebelumnya di sesi ini, switch-nya instan.
+ */
+window.changeMode = async function(mode) {
+    if (mode === window.currentDetectionMode) return;
+
     window.currentDetectionMode = mode;
     window.updateButtonVisuals(mode);
 
     lastPredictedLabel = "-";
     consecutiveCount = 0;
+    updateUI("-", 0);
 
     isModeChangingNotification = true;
     statusText.style.display = 'block';
-    
-    if (mode === 'huruf') {
-        statusText.innerHTML = '<i class="fas fa-font" style="color: #3b82f6;"></i> Mengalihkan ke <b>Mode HURUF (A - Z)</b>';
-    } else if (mode === 'angka') {
-        statusText.innerHTML = '<i class="fas fa-hashtag" style="color: #10b981;"></i> Mengalihkan ke <b>Mode ANGKA (0 - 9)</b>';
+
+    if (modelCache[mode]) {
+        // Model kategori ini sudah pernah dimuat -> switch instan, tanpa network call.
+        statusText.innerHTML = mode === 'huruf'
+            ? '<i class="fas fa-font" style="color: #3b82f6;"></i> Mode <b>HURUF (A - Z)</b> aktif'
+            : '<i class="fas fa-hashtag" style="color: #10b981;"></i> Mode <b>ANGKA (0 - 9)</b> aktif';
+
+        setTimeout(() => { isModeChangingNotification = false; }, 1000);
+        return;
     }
 
-    setTimeout(() => {
-        isModeChangingNotification = false;
-    }, 1000);
+    // Model kategori ini belum pernah dimuat -> fetch sekarang, prediksi di-pause dulu.
+    isSwitchingModel = true;
+    statusText.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memuat model ${mode.toUpperCase()} untuk pertama kali...`;
+
+    try {
+        await loadModelForKategori(mode);
+        statusText.innerHTML = mode === 'huruf'
+            ? '<i class="fas fa-font" style="color: #3b82f6;"></i> Mode <b>HURUF (A - Z)</b> siap'
+            : '<i class="fas fa-hashtag" style="color: #10b981;"></i> Mode <b>ANGKA (0 - 9)</b> siap';
+    } catch (error) {
+        console.error(`⚠️ Gagal memuat model ${mode}:`, error);
+        statusText.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Gagal memuat model ${mode.toUpperCase()}: ${error.message}`;
+    } finally {
+        isSwitchingModel = false;
+        setTimeout(() => { isModeChangingNotification = false; }, 1000);
+    }
 }
 
 function extractFeatures(results) {
@@ -219,7 +275,7 @@ function extractFeatures(results) {
 function updateUI(prediksi, akurasi) {
     document.getElementById('prediction-result').innerText = prediksi;
     document.getElementById('accuracy-value').innerText = akurasi + "%";
-    
+
     const bar = document.getElementById('accuracy-bar');
     bar.style.width = akurasi + "%";
 
@@ -250,61 +306,36 @@ function drawGuide(ctx, width, height) {
     ctx.fillText("POSISIKAN TANGAN DI SINI", width / 2, rectY - 14);
 }
 
+/**
+ * Jalankan prediksi pakai model kategori yang SEDANG AKTIF
+ * (window.currentDetectionMode). Tidak ada lagi heuristik manual
+ * V<->2 / W<->6-7-8 / F<->9 / B<->4 / O<->0 atau filter regex angka,
+ * karena model huruf & angka sekarang memang dua model terpisah yang
+ * masing-masing hanya mengenal kelasnya sendiri.
+ */
 async function runLocalPrediction(features) {
-    if (!onnxSession) return;
+    const active = modelCache[window.currentDetectionMode];
+    if (!active || !active.session) return;
 
     try {
         const inputTensor = new ort.Tensor('float32', new Float32Array(features), [1, 126]);
         const feeds = { 'float_input': inputTensor };
-        const outputMap = await onnxSession.run(feeds, ['label', 'probabilities']);
+        const outputMap = await active.session.run(feeds, ['label', 'probabilities']);
         const labelTensor = outputMap['label'];
         const probTensor  = outputMap['probabilities'];
 
         if (!labelTensor?.data) return;
 
         const predictedIndex = Number(labelTensor.data[0]);
-        let stringLabel = classLabels[predictedIndex] || "-";
+        const stringLabel = active.labels[predictedIndex] || "-";
 
-        if (window.currentDetectionMode === 'angka') {
-                const upperLabel = stringLabel.toUpperCase();
-                
-                if (upperLabel === 'V') {
-                    stringLabel = '2';
-                } 
-                else if (upperLabel === 'W') {
-                    stringLabel = '6'; 
-                } 
-                else if (upperLabel === 'F') {
-                    stringLabel = '9';
-                } 
-                else if (upperLabel === 'B') {
-                    stringLabel = '4';
-                }
-                else if (upperLabel === 'O') {
-                    stringLabel = '0';
-                }
-            } else if (window.currentDetectionMode === 'huruf') {
-                if (stringLabel === '2') stringLabel = 'V';
-                else if (stringLabel === '6' || stringLabel === '7' || stringLabel === '8') stringLabel = 'W';
-                else if (stringLabel === '9') stringLabel = 'F';
-                else if (stringLabel === '4') stringLabel = 'B';
-                else if (stringLabel === '0') stringLabel = 'O';
-            }
-
-        const isAngka = /^[0-9]$/.test(stringLabel);
-        let isLabelAllowed = true;
-        if (window.currentDetectionMode === 'angka' && !isAngka) isLabelAllowed = false;
-        else if (window.currentDetectionMode === 'huruf' && isAngka) isLabelAllowed = false;
-
-        // CONFIDENCE SCORE
         let confidenceScore = "0";
         if (probTensor?.data) {
             confidenceScore = (probTensor.data[predictedIndex] * 100).toFixed(1);
         }
-        console.log(`Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
+        console.log(`[${window.currentDetectionMode}] Label: ${stringLabel} | Confidence: ${confidenceScore}% | Index: ${predictedIndex}`);
 
-        // EVALUASI KELAYAKAN UI & DEBOUNCE
-        if (isLabelAllowed && classLabels.length > 0 && predictedIndex < classLabels.length) {
+        if (active.labels.length > 0 && predictedIndex < active.labels.length) {
             if (parseFloat(confidenceScore) > 25.0) {
 
                 if (stringLabel === lastPredictedLabel) {
@@ -327,12 +358,6 @@ async function runLocalPrediction(features) {
                 if (!isModeChangingNotification)
                     statusText.innerHTML = '<i class="fas fa-hand-paper" style="color: #f59e0b;"></i> Posisi gestur kurang jelas...';
             }
-        } else {
-            consecutiveCount = 0;
-            lastPredictedLabel = "-";
-            updateUI("-", "0");
-            if (!isModeChangingNotification)
-                statusText.innerHTML = `<i class="fas fa-ban" style="color: #ef4444;"></i> Isyarat diabaikan (Bukan Mode ${window.currentDetectionMode.toUpperCase()})`;
         }
 
     } catch (err) {
@@ -348,7 +373,7 @@ function onResults(results) {
         canvasElement.width = w;
         canvasElement.height = h;
     }
-    
+
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.translate(canvasElement.width, 0);
@@ -356,12 +381,12 @@ function onResults(results) {
 
     const imgWidth = results.image.width;
     const imgHeight = results.image.height;
-    
+
     const inputRatio = imgWidth / imgHeight;
     const outputRatio = canvasElement.width / canvasElement.height;
-    
+
     let srcX = 0, srcY = 0, srcWidth = imgWidth, srcHeight = imgHeight;
-    
+
     if (inputRatio > outputRatio) {
         srcWidth = imgHeight * outputRatio;
         srcX = (imgWidth - srcWidth) / 2;
@@ -371,9 +396,9 @@ function onResults(results) {
     }
 
     canvasCtx.drawImage(
-        results.image, 
+        results.image,
         srcX, srcY, srcWidth, srcHeight,
-        0, 0, canvasElement.width, canvasElement.height 
+        0, 0, canvasElement.width, canvasElement.height
     );
 
     if (results.multiHandLandmarks) {
@@ -405,9 +430,14 @@ function onResults(results) {
             });
         }
     }
-    
+
     canvasCtx.restore();
     drawGuide(canvasCtx, canvasElement.width, canvasElement.height);
+
+    if (isSwitchingModel) {
+        // Lagi proses ganti/unduh model kategori lain -> jangan prediksi dulu.
+        return;
+    }
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const now = Date.now();
@@ -451,11 +481,11 @@ async function predictLoop() {
     }
 
     const now = Date.now();
-    
-    if (!isProcessingFrame && videoElement.readyState >= 3 && (now - lastFrameTime >= FPS_THROTTLE)) { 
+
+    if (!isProcessingFrame && videoElement.readyState >= 3 && (now - lastFrameTime >= FPS_THROTTLE)) {
         isProcessingFrame = true;
         lastFrameTime = now;
-        
+
         try {
             await hands.send({ image: videoElement });
         } catch (err) {
@@ -464,31 +494,31 @@ async function predictLoop() {
             isProcessingFrame = false;
         }
     }
-    
+
     requestAnimationFrame(predictLoop);
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
     await initModelAndLabels();
-    
+
     try {
         const constraints = {
-            video: { 
+            video: {
                 facingMode: 'user',
-                width: 640, 
-                height: 480, 
+                width: 640,
+                height: 480,
                 frameRate: { ideal: 24 }
             },
             audio: false
         };
-        
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         videoElement.srcObject = stream;
         videoElement.setAttribute('playsinline', true);
         videoElement.setAttribute('webkit-playsinline', true);
-        videoElement.muted = true; 
+        videoElement.muted = true;
         videoElement.play();
-        
+
         videoElement.onloadeddata = () => {
             predictLoop();
         };

@@ -185,7 +185,15 @@
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateToggleIcon(newTheme);
-            changeMode(window.currentDetectionMode);
+
+            // Toggle tema HANYA urusan styling — jangan panggil changeMode() di sini.
+            // changeMode() sekarang async dan langsung return kalau mode-nya sama
+            // (supaya tidak reload model tanpa perlu), jadi updateButtonVisuals()
+            // di dalamnya ikut ke-skip. Refresh visual tombol cukup panggil
+            // updateButtonVisuals() langsung, tanpa lewat changeMode().
+            if (typeof window.updateButtonVisuals === 'function') {
+                window.updateButtonVisuals(window.currentDetectionMode);
+            }
         });
 
         function updateToggleIcon(theme) {

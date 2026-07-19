@@ -4,7 +4,8 @@
     const htmlEl = document.documentElement;
     let globalClassificationReport = null;
     let selectedLabelValue = "";
-    let currentMatrixFilterMode = 'all';
+    let currentMatrixCategory = 'huruf';
+    let rawMatrixPerKategori = {};
 
     function getAdaptiveColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? '#0f172a' : '#818cf8'; }
     function getGridColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? 'rgba(79, 70, 229, 0.08)' : 'rgba(255, 255, 255, 0.05)'; }
@@ -30,10 +31,15 @@
 
     function selectMatrixOption(value, text) {
         document.getElementById('matrix-select-text').textContent = text;
-        currentMatrixFilterMode = value;
+        currentMatrixCategory = value;
         document.getElementById('matrix-select-options').classList.add('hidden');
         document.getElementById('matrix-select-arrow').classList.remove('rotate-180');
-        filterMatrix();
+        renderCurrentMatrix();
+    }
+
+    function renderCurrentMatrix() {
+        const matrixData = rawMatrixPerKategori[currentMatrixCategory] || {};
+        renderMatrix(matrixData);
     }
 
     // DROPDOWN EVALUASI PER LABEL
@@ -59,7 +65,7 @@
         selectedLabelValue = value;
         document.getElementById('custom-select-options').classList.add('hidden');
         document.getElementById('custom-select-arrow').classList.remove('rotate-180');
-        updateLabelEvaluation(); 
+        updateLabelEvaluation();
     }
 
     document.addEventListener('click', function(e) {
@@ -83,13 +89,13 @@
         const titleEl = document.getElementById('modalTitle');
         const bodyEl = document.getElementById('modalBody');
         if (!titleEl || !bodyEl) return;
-            
+
         if (type === 'matrix') {
             titleEl.innerHTML = '<i class="fa-solid fa-th"></i> Analisis Detail Matriks Konfusi (Confusion Matrix)';
             bodyEl.innerHTML = `
                 <p class="font-medium text-slate-800 dark:text-slate-200"><strong>Apa itu Matriks Konfusi?</strong></p>
                 <p>Matriks Konfusi adalah instrumen evaluasi matematis berbentuk tabel yang memetakan efektivitas kinerja model klasifikasi secara komprehensif. Tabel ini membandingkan data aktual (fakta lapangan) dengan data hasil prediksi yang dihasilkan oleh algoritma kecerdasan buatan.</p>
-                    
+
                 <div class="p-3.5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 space-y-1">
                     <p class="font-semibold text-indigo-500"><i class="fa-solid fa-graduation-cap"></i> Cara Membaca Grafik Matrix:</p>
                     <ul class="list-disc list-inside space-y-1 text-[11px]">
@@ -104,7 +110,7 @@
             bodyEl.innerHTML = `
                 <p class="font-medium text-slate-800 dark:text-slate-200"><strong>Apa itu Distribusi Dataset?</strong></p>
                 <p>Distribusi Dataset menampilkan visualisasi grafik batang yang merepresentasikan total volume sampel data (nilai *Support*) yang dialokasikan pada setiap label kelas klasifikasi, baik berupa huruf (A-Z) maupun angka (0-9).</p>
-                    
+
                 <div class="p-3.5 bg-purple-500/5 rounded-2xl border border-purple-500/10 space-y-1">
                     <p class="font-semibold text-purple-500"><i class="fa-solid fa-scale-balanced"></i> Pentingnya Keseimbangan Data (Data Balance):</p>
                     <p class="text-[11px]">Kuantitas data yang seimbang pada tiap grafik memastikan model belajar secara adil tanpa kecenderungan memihak (*bias*). Jika salah satu batang grafik terlalu tinggi dibandingkan yang lain, model akan cenderung mahir menebak kelas mayoritas tersebut namun lemah dalam mengenali kelas minoritas.</p>
@@ -134,7 +140,7 @@
         const modal = document.getElementById('infoModal');
         const content = document.getElementById('modalContent');
         if (!modal || !content) return;
-            
+
         if (show) {
             modal.removeEventListener('animationend', onAnimationEndHandler);
             modal.classList.remove('hidden', 'animate__fadeOut');
@@ -160,7 +166,7 @@
             window.matrixChartInst.options.scales.x.ticks.color = activeColor;
             window.matrixChartInst.options.scales.y.ticks.color = activeColor;
             window.matrixChartInst.data.datasets[0].borderColor = getMatrixBorderColor();
-            window.matrixChartInst.update('none'); 
+            window.matrixChartInst.update('none');
         }
         if (window.distChartInst) {
             window.distChartInst.options.scales.x.ticks.color = activeColor;
@@ -173,7 +179,8 @@
     Chart.defaults.color = getAdaptiveColor();
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
     Chart.defaults.font.weight = '700';
-    window.matrixChartInst = null; window.distChartInst = null; let rawMatrixData = null;
+    window.matrixChartInst = null;
+    window.distChartInst = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('themeChanged', (e) => applyThemeToCharts(e.detail.theme));
@@ -187,30 +194,21 @@
                 resizeTimeout = setTimeout(() => {
                     if(window.matrixChartInst) window.matrixChartInst.resize();
                     if(window.distChartInst) window.distChartInst.resize();
-                }, 260); 
+                }, 260);
             });
             resizeObserver.observe(mainContent);
         }
 
         setTimeout(async () => {
             try {
-                const response = await fetch('/api/dashboard-stats'); 
+                const response = await fetch('/api/dashboard-stats');
                 const data = await response.json();
-                if (data && data.status === 'success') { 
+                if (data && data.status === 'success') {
                     updateDashboard(data); if(data.logs) renderLogs(data.logs);
                 }
             } catch (err) { console.error("Gagal memuat statistik:", err); }
         }, 100);
     });
-
-    function filterMatrix() {
-        if (!rawMatrixData) return;
-        const mode = currentMatrixFilterMode;
-        let filteredData = {}; const allLabels = Object.keys(rawMatrixData);
-        let targetLabels = mode === 'numbers' ? allLabels.filter(l => !isNaN(l)) : mode === 'letters' ? allLabels.filter(l => isNaN(l)) : allLabels;
-        targetLabels.forEach(y => { filteredData[y] = {}; targetLabels.forEach(x => { filteredData[y][x] = rawMatrixData[y][x] || 0; }); });
-        renderMatrix(filteredData);
-    }
 
     function animateValue(obj, start, end, duration, isPercentage = false) {
         if (!obj) return;
@@ -219,7 +217,7 @@
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             const currentVal = progress * (end - start) + start;
-            
+
             obj.innerHTML = isPercentage ? currentVal.toFixed(0) + "%" : Math.floor(currentVal).toLocaleString();
             if (progress < 1) window.requestAnimationFrame(step);
         };
@@ -227,18 +225,34 @@
     }
 
     function updateDashboard(data) {
-        if (document.getElementById('total-data')) animateValue(document.getElementById('total-data'), 0, data.total_data || 0, 500, false);
-        if (document.getElementById('accuracy-val')) animateValue(document.getElementById('accuracy-val'), 0, (data.accuracy || 0) * 100, 600, true);
-        if (document.getElementById('total-labels')) animateValue(document.getElementById('total-labels'), 0, data.total_labels || 0, 400, false);
-        if (data.confusion_matrix) { rawMatrixData = data.confusion_matrix; filterMatrix(); }
-        if (data.classification_report) { globalClassificationReport = data.classification_report; populateLabelSelect(data.classification_report); renderDistribution(data.classification_report); }
+        if (document.getElementById('total-data')) {
+            animateValue(document.getElementById('total-data'), 0, data.total_data || 0, 500, false);
+        }
+        if (document.getElementById('total-labels')) {
+            animateValue(document.getElementById('total-labels'), 0, data.total_labels || 0, 400, false);
+        }
+
+        const accKategori = data.accuracy_per_kategori || {};
+        const accHurufEl = document.getElementById('accuracy-val-huruf');
+        const accAngkaEl = document.getElementById('accuracy-val-angka');
+        if (accHurufEl) animateValue(accHurufEl, 0, (accKategori.huruf || 0) * 100, 600, true);
+        if (accAngkaEl) animateValue(accAngkaEl, 0, (accKategori.angka || 0) * 100, 600, true);
+
+        rawMatrixPerKategori = data.confusion_matrix_per_kategori || {};
+        renderCurrentMatrix();
+
+        if (data.classification_report) {
+            globalClassificationReport = data.classification_report;
+            populateLabelSelect(data.classification_report);
+            renderDistribution(data.classification_report);
+        }
     }
 
     function populateLabelSelect(reportData) {
-        const listContainer = document.getElementById('custom-select-options'); 
+        const listContainer = document.getElementById('custom-select-options');
         if (!listContainer) return;
         listContainer.innerHTML = '';
-        
+
         const defaultLi = document.createElement('li');
         defaultLi.className = "px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer border-b border-slate-100 dark:border-slate-700/40";
         defaultLi.textContent = "Pilih Label";
@@ -262,20 +276,20 @@
 
     function updateLabelEvaluation() {
         const label = selectedLabelValue;
-        const pEl = document.getElementById('eval-precision'); 
-        const rEl = document.getElementById('eval-recall'); 
+        const pEl = document.getElementById('eval-precision');
+        const rEl = document.getElementById('eval-recall');
         const fEl = document.getElementById('eval-f1');
-        
-        if(!label || !globalClassificationReport || !globalClassificationReport[label]) { 
+
+        if(!label || !globalClassificationReport || !globalClassificationReport[label]) {
             animateValue(pEl, parseInt(pEl.textContent) || 0, 0, 400, true);
             animateValue(rEl, parseInt(rEl.textContent) || 0, 0, 400, true);
             animateValue(fEl, parseInt(fEl.textContent) || 0, 0, 400, true);
-            return; 
+            return;
         }
-        
+
         const metrics = globalClassificationReport[label];
         const f1Value = metrics.f1_score !== undefined ? metrics.f1_score : (metrics['f1-score'] !== undefined ? metrics['f1-score'] : 0);
-        
+
         const currentPrecision = parseInt(pEl.textContent) || 0;
         const currentRecall = parseInt(rEl.textContent) || 0;
         const currentF1 = parseInt(fEl.textContent) || 0;
@@ -305,21 +319,28 @@
     }
 
     function renderMatrix(matrixData) {
-        const canvas = document.getElementById('matrixChart'); 
-        if (!canvas) return; 
+        const canvas = document.getElementById('matrixChart');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (window.matrixChartInst) window.matrixChartInst.destroy();
-        
-        const labels = Object.keys(matrixData); 
+
+        const labels = Object.keys(matrixData);
+
+        if (labels.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            window.matrixChartInst = null;
+            return;
+        }
+
         const values = [];
         let grandTotal = 0;
 
-        labels.forEach((y) => { 
-            labels.forEach((x) => { 
+        labels.forEach((y) => {
+            labels.forEach((x) => {
                 const val = matrixData[y][x] || 0;
                 grandTotal += val;
-                values.push({ x: x, y: y, v: val }); 
-            }); 
+                values.push({ x: x, y: y, v: val });
+            });
         });
         const maxVal = Math.max(...values.map(d => d.v)) || 1;
 
@@ -327,22 +348,22 @@
             type: 'matrix',
             data: {
                 datasets: [{
-                    label: 'Confusion Matrix', 
+                    label: 'Confusion Matrix',
                     data: values,
                     backgroundColor(c) {
                         if (!c || c.dataIndex === undefined || !c.dataset.data[c.dataIndex]) return 'transparent';
-                        const val = c.dataset.data[c.dataIndex].v; 
+                        const val = c.dataset.data[c.dataIndex].v;
                         if (val === 0) return 'rgba(255, 255, 255, 0.01)';
                         return `rgba(99, 102, 241, ${0.2 + ((val / maxVal) * 0.8)})`;
                     },
-                    borderColor: typeof getMatrixBorderColor === 'function' ? getMatrixBorderColor() : 'rgba(255, 255, 255, 0.03)', 
+                    borderColor: typeof getMatrixBorderColor === 'function' ? getMatrixBorderColor() : 'rgba(255, 255, 255, 0.03)',
                     borderWidth: 0.5,
                     width: ({chart}) => chart.chartArea ? (chart.chartArea.width / labels.length) - 0.2 : 15,
                     height: ({chart}) => chart.chartArea ? (chart.chartArea.height / labels.length) - 0.2 : 15
                 }]
             },
             options: {
-                maintainAspectRatio: false, 
+                maintainAspectRatio: false,
                 responsive: true,
                 animation: false,
                 events: ['click', 'mousemove', 'mouseout'],
@@ -382,11 +403,11 @@
     }
 
     function renderDistribution(reportData) {
-        const canvas = document.getElementById('distChart'); 
-        if (!canvas) return; 
+        const canvas = document.getElementById('distChart');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (window.distChartInst) window.distChartInst.destroy();
-        
+
         const labels = Object.keys(reportData)
         .filter(k => {
             const cleanKey = k.toLowerCase().trim();
@@ -398,11 +419,11 @@
             const dataTarget = reportData[l] || reportData[l.toUpperCase()] || reportData[l.toLowerCase()];
             return dataTarget ? (dataTarget.support || 0) : 0;
         });
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400); 
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#a855f7');
 
         window.distChartInst = new Chart(ctx, {
-            type: 'bar', 
+            type: 'bar',
             data: { labels: labels, datasets: [{ label: 'Sampel', data: counts, backgroundColor: gradient, borderRadius: 8 }] },
             options: {
                 maintainAspectRatio: false, responsive: true,

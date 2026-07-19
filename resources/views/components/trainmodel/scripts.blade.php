@@ -31,6 +31,21 @@
         }, 450);
     }
 
+    // Tab switcher untuk modal hasil evaluasi (Huruf / Angka)
+    function switchResultTab(kategori) {
+        const isHuruf = kategori === 'huruf';
+
+        document.getElementById('result-panel-huruf').classList.toggle('hidden', !isHuruf);
+        document.getElementById('result-panel-angka').classList.toggle('hidden', isHuruf);
+
+        document.getElementById('tab-btn-huruf').className = isHuruf
+            ? 'px-5 py-1.5 rounded-lg text-[10px] font-black transition-all bg-indigo-600 text-white'
+            : 'px-5 py-1.5 rounded-lg text-[10px] font-black transition-all text-indigo-900 dark:text-slate-400';
+        document.getElementById('tab-btn-angka').className = !isHuruf
+            ? 'px-5 py-1.5 rounded-lg text-[10px] font-black transition-all bg-indigo-600 text-white'
+            : 'px-5 py-1.5 rounded-lg text-[10px] font-black transition-all text-indigo-900 dark:text-slate-400';
+    }
+
     const htmlEl = document.documentElement;
     function applyTheme(theme) {
         htmlEl.setAttribute('data-theme', theme);
@@ -64,8 +79,6 @@
         actionBtn:       document.getElementById('main-action-btn'),
         timerDisplay:    document.getElementById('timer-display'),
         statsContainer:  document.getElementById('label-stats-container'),
-        accuracyValue:   document.getElementById('accuracy-value'),
-        reportTable:     document.getElementById('report-table-container'),
         modalResult:     document.getElementById('modal-result'),
         video:           document.getElementById('input_video'),
         canvas:          document.getElementById('output_canvas'),
@@ -366,164 +379,202 @@
     }
 
     function prosesTraining() {
-    const btn = document.getElementById('btn-train');
-    const originalHTML = btn.innerHTML;
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); 
+        const btn = document.getElementById('btn-train');
+        const originalHTML = btn.innerHTML;
 
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> MEMPROSES TRAINING...`;
-    addLog("SISTEM: Memulai proses training model AI di background thread...");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000);
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (!csrfToken) {
-        addLog("ERROR: CSRF Token tidak ditemukan. Refresh halaman.");
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        return;
-    }
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> MEMPROSES TRAINING...`;
+        addLog("SISTEM: Memulai proses training model AI (huruf & angka) di background thread...");
 
-    fetch('/train-model', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({ trigger: 'train' }),
-        signal: controller.signal
-    })
-    .then(res => {
-        clearTimeout(timeoutId);
-        if (!res.ok) {
-            return res.json().then(errData => {
-                throw new Error(errData.message || `Server error: ${res.status}`);
-            });
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            addLog("ERROR: CSRF Token tidak ditemukan. Refresh halaman.");
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
         }
-        return res.json();
-    })
-    .then(data => {
-        addLog("SISTEM: Training berhasil dipicu. Menunggu proses kalkulasi data & evaluasi model...");
-        // JALANKAN POLLING: Mulai interval pengecekan berkala ke server Laravel
-        jalankanPollingEvaluasi(btn, originalHTML);
-    })
-    .catch(err => {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-            addLog("ERROR: Waktu tunggu (timeout) habis saat memicu training.");
-            AppAlert.fire('error', 'Waktu Tunggu Habis', 'Proses training memakan waktu terlalu lama di server.');
-        } else {
-            const msg = err?.message || 'Terjadi kesalahan sistem.';
-            addLog(`ERROR: ${msg}`);
-            AppAlert.fire('error', 'Training Gagal', msg);
-        }
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    });
-}
 
-function jalankanPollingEvaluasi(btn, originalHTML) {
-    let waktuTungguMaksimal = 120;
-    let hitungCek = 0;
-
-    const intervalCek = setInterval(() => {
-        hitungCek++;
-
-        fetch('/get-latest-evaluation')
+        fetch('/train-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ trigger: 'train' }),
+            signal: controller.signal
+        })
         .then(res => {
-            if (!res.ok) throw new Error();
+            clearTimeout(timeoutId);
+            if (!res.ok) {
+                return res.json().then(errData => {
+                    throw new Error(errData.message || `Server error: ${res.status}`);
+                });
+            }
             return res.json();
         })
-        .then(response => {
-            if (response.status === 'ready') {
-                clearInterval(intervalCek);
-                
-                const akurasi = (response.accuracy * 100).toFixed(1);
-                addLog(`SUKSES: Model diperbarui! Akurasi: ${akurasi}%`);
+        .then(data => {
+            addLog("SISTEM: Training berhasil dipicu. Menunggu proses kalkulasi data & evaluasi model...");
+            jalankanPollingEvaluasi(btn, originalHTML);
+        })
+        .catch(err => {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') {
+                addLog("ERROR: Waktu tunggu (timeout) habis saat memicu training.");
+                AppAlert.fire('error', 'Waktu Tunggu Habis', 'Proses training memakan waktu terlalu lama di server.');
+            } else {
+                const msg = err?.message || 'Terjadi kesalahan sistem.';
+                addLog(`ERROR: ${msg}`);
+                AppAlert.fire('error', 'Training Gagal', msg);
+            }
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        });
+    }
 
-                el.accuracyValue.innerText = akurasi + '%';
-                el.reportTable.innerHTML = '';
+    /**
+     * Render 1 kategori (huruf / angka) ke dalam panel modal hasil evaluasi.
+     * dataKategori = objek meta_model.json dari Laravel, atau null kalau
+     * kategori itu belum/tidak selesai ditraining.
+     */
+    function renderKategoriResult(kategori, dataKategori) {
+        const contentEl = document.getElementById(`result-content-${kategori}`);
+        const emptyEl   = document.getElementById(`result-empty-${kategori}`);
 
-                const report = response.classification_report || {};
-                const skip   = ['accuracy', 'macro avg', 'weighted avg'];
-                let htmlBuffer = [];
+        if (!dataKategori) {
+            contentEl.classList.add('hidden');
+            emptyEl.classList.remove('hidden');
+            return;
+        }
 
-                const isLightMode = document.documentElement.getAttribute('data-theme') === 'light' || !document.documentElement.classList.contains('dark');
+        contentEl.classList.remove('hidden');
+        emptyEl.classList.add('hidden');
 
-                Object.keys(report).forEach(key => {
-                    if (skip.includes(key)) return;
-                    const metrics  = report[key];
-                    const f1       = (metrics['f1-score'] * 100).toFixed(0);
-                    
-                    let hexColor = '#ef4444'; 
-                    let hexBorder = 'rgba(239, 68, 68, 0.3)';
-                    
-                    if (f1 >= 70) {
-                        hexColor = isLightMode ? '#059669' : '#34d399'; 
-                        hexBorder = isLightMode ? 'rgba(5, 150, 105, 0.3)' : 'rgba(52, 211, 153, 0.3)';
-                    } else if (f1 >= 40) {
-                        hexColor = isLightMode ? '#d97706' : '#fbbf24'; 
-                        hexBorder = isLightMode ? 'rgba(217, 119, 6, 0.3)' : 'rgba(251, 191, 36, 0.3)';
+        const akurasi = ((dataKategori.accuracy || 0) * 100).toFixed(1);
+        document.getElementById(`accuracy-value-${kategori}`).innerText = akurasi + '%';
+
+        const fitStatusEl = document.getElementById(`fit-status-${kategori}`);
+        if (fitStatusEl && dataKategori.model_fitting_status) {
+            fitStatusEl.innerText = dataKategori.model_fitting_status;
+        }
+
+        const reportTableEl = document.getElementById(`report-table-container-${kategori}`);
+        reportTableEl.innerHTML = '';
+
+        const report = dataKategori.classification_report || {};
+        const skip   = ['accuracy', 'macro avg', 'weighted avg'];
+        let htmlBuffer = [];
+
+        const isLightMode = document.documentElement.getAttribute('data-theme') === 'light' || !document.documentElement.classList.contains('dark');
+
+        Object.keys(report).forEach(key => {
+            if (skip.includes(key)) return;
+            const metrics = report[key];
+            const f1 = (metrics['f1-score'] * 100).toFixed(0);
+
+            let hexColor = '#ef4444';
+            let hexBorder = 'rgba(239, 68, 68, 0.3)';
+
+            if (f1 >= 70) {
+                hexColor = isLightMode ? '#059669' : '#34d399';
+                hexBorder = isLightMode ? 'rgba(5, 150, 105, 0.3)' : 'rgba(52, 211, 153, 0.3)';
+            } else if (f1 >= 40) {
+                hexColor = isLightMode ? '#d97706' : '#fbbf24';
+                hexBorder = isLightMode ? 'rgba(217, 119, 6, 0.3)' : 'rgba(251, 191, 36, 0.3)';
+            } else {
+                hexColor = isLightMode ? '#dc2626' : '#f87171';
+            }
+
+            const innerBorderColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.08)';
+            const innerTextColor = isLightMode ? 'text-slate-800' : 'text-white';
+
+            htmlBuffer.push(`
+                <div class="bg-slate-900/50 dark:bg-slate-900/50 border p-4 rounded-3xl animate__animated animate__fadeInUp" style="border-color: ${hexBorder};">
+                    <div class="text-center mb-3">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Label: ${key}</span>
+                        <div class="text-2xl font-black" style="color: ${hexColor};">${f1}% <span class="text-[8px] text-slate-500">F1</span></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-3" style="border-top: 1px solid ${innerBorderColor};">
+                        <div class="text-center">
+                            <p class="text-[8px] text-slate-500 uppercase font-bold">Precision</p>
+                            <p class="text-xs font-bold ${innerTextColor}">${(metrics.precision * 100).toFixed(0)}%</p>
+                        </div>
+                        <div class="text-center" style="border-left: 1px solid ${innerBorderColor};">
+                            <p class="text-[8px] text-slate-500 uppercase font-bold">Recall</p>
+                            <p class="text-xs font-bold ${innerTextColor}">${(metrics.recall * 100).toFixed(0)}%</p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+
+        reportTableEl.innerHTML = htmlBuffer.join('');
+    }
+
+    function jalankanPollingEvaluasi(btn, originalHTML) {
+        let waktuTungguMaksimal = 120; // ~10 menit (120 x 5 detik)
+        let hitungCek = 0;
+
+        const intervalCek = setInterval(() => {
+            hitungCek++;
+
+            fetch('/get-latest-evaluation')
+            .then(res => {
+                if (!res.ok) throw new Error();
+                return res.json();
+            })
+            .then(response => {
+                // status: "ready" (2 kategori selesai), "partial" (baru 1),
+                // "pending" (belum ada). Kita tunggu sampai "ready" ATAU
+                // waktu tunggu habis -- kalau timeout tapi sudah "partial",
+                // tetap tampilkan apa yang ada supaya user tidak menunggu
+                // kategori yang mungkin memang di-skip (data < 30 baris).
+                if (response.status === 'ready' || (response.status === 'partial' && hitungCek >= waktuTungguMaksimal)) {
+                    clearInterval(intervalCek);
+
+                    const kategoriData = response.kategori || {};
+                    renderKategoriResult('huruf', kategoriData.huruf || null);
+                    renderKategoriResult('angka', kategoriData.angka || null);
+                    switchResultTab('huruf');
+
+                    const akurasiHuruf = kategoriData.huruf ? ((kategoriData.huruf.accuracy || 0) * 100).toFixed(1) : '-';
+                    const akurasiAngka = kategoriData.angka ? ((kategoriData.angka.accuracy || 0) * 100).toFixed(1) : '-';
+                    addLog(`SUKSES: Model diperbarui! Akurasi huruf: ${akurasiHuruf}% | Akurasi angka: ${akurasiAngka}%`);
+
+                    if (typeof openModalResult === "function") {
+                        openModalResult();
                     } else {
-                        hexColor = isLightMode ? '#dc2626' : '#f87171'; 
+                        console.error("Fungsi openModalResult() tidak ditemukan di skrip blade Anda.");
                     }
 
-                    const innerBorderColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.08)';
-                    const innerTextColor = isLightMode ? 'text-slate-800' : 'text-white';
+                    if (typeof updateUIStats === "function") {
+                        if (typeof state !== 'undefined') state.sessionStats = {};
+                        updateUIStats();
+                    }
 
-                    htmlBuffer.push(`
-                        <div class="bg-slate-900/50 dark:bg-slate-900/50 border p-4 rounded-3xl animate__animated animate__fadeInUp" style="border-color: ${hexBorder};">
-                            <div class="text-center mb-3">
-                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Label: ${key}</span>
-                                <div class="text-2xl font-black" style="color: ${hexColor};">${f1}% <span class="text-[8px] text-slate-500">F1</span></div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 pt-3" style="border-top: 1px solid ${innerBorderColor};">
-                                <div class="text-center">
-                                    <p class="text-[8px] text-slate-500 uppercase font-bold">Precision</p>
-                                    <p class="text-xs font-bold ${innerTextColor}">${(metrics.precision * 100).toFixed(0)}%</p>
-                                </div>
-                                <div class="text-center" style="border-left: 1px solid ${innerBorderColor};">
-                                    <p class="text-[8px] text-slate-500 uppercase font-bold">Recall</p>
-                                    <p class="text-xs font-bold ${innerTextColor}">${(metrics.recall * 100).toFixed(0)}%</p>
-                                </div>
-                            </div>
-                        </div>
-                    `);
-                });
+                    AppAlert.fire('success', 'Training Selesai', `Model huruf: <b>${akurasiHuruf}%</b> &middot; Model angka: <b>${akurasiAngka}%</b>.`);
 
-                el.reportTable.innerHTML = htmlBuffer.join('');
-
-                if (typeof openModalResult === "function") {
-                    openModalResult();
-                } else {
-                    console.error("Fungsi openModalResult() tidak ditemukan di skrip blade Anda.");
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
                 }
+            })
+            .catch(() => {
+                // Diamkan; endpoint memang bisa 404/error sesaat kalau file
+                // metadata belum ada sama sekali di percobaan pertama.
+            });
 
-                if (typeof updateUIStats === "function") {
-                    if (typeof state !== 'undefined') state.sessionStats = {};
-                    updateUIStats();
-                }
-
-                AppAlert.fire('success', 'Training Selesai', `Model AI berhasil diperbarui dengan akurasi <b>${akurasi}%</b>.`); 
-                
+            if (hitungCek >= waktuTungguMaksimal) {
+                clearInterval(intervalCek);
+                addLog("ERROR: Waktu sinkronisasi habis. Server background memproses terlalu lama.");
+                AppAlert.fire('error', 'Waktu Tunggu Habis', 'Proses sinkronisasi file evaluasi terputus. Silakan periksa status training di log server Anda.');
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
             }
-        })
-        .catch(() => {
-            
-        });
-
-        if (hitungCek >= waktuTungguMaksimal) {
-            clearInterval(intervalCek);
-            addLog("ERROR: Waktu sinkronisasi habis. Server background memproses terlalu lama.");
-            AppAlert.fire('error', 'Waktu Tunggu Habis', 'Proses sinkronisasi file evaluasi terputus. Silakan periksa status training di log server Anda.');
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-        }
-    }, 5000);
-}
+        }, 5000);
+    }
 
     function drawGuide(w, h) {
         ctx.strokeStyle = "rgba(99, 102, 241, 0.4)";
