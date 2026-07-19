@@ -54,130 +54,121 @@
 
                         {{-- Grafik Area --}}
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            {{-- Sisi Kiri: Matriks Konfusi & Distribusi --}}
-                            <div class="lg:col-span-7 space-y-6 flex flex-col">
-    <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-5 flex-grow">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
-                Matriks Konfusi
-            </h3>
-            <div class="flex items-center gap-2">
-                <div class="relative inline-block text-left z-50">
-                    {{-- PERBAIKAN: Default text diubah menjadi Huruf (A-Z) sesuai dengan inisialisasi awal variabel JS --}}
-                    <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
-                        <span id="matrix-select-text">Huruf (A-Z)</span>
-                        <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
+    {{-- Sisi Kiri: Matriks Konfusi & Distribusi Dataset --}}
+    <div class="lg:col-span-7 space-y-6 flex flex-col">
+        <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-5 flex-grow">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
+                    Matriks Konfusi
+                </h3>
+                <div class="flex items-center gap-2">
+                    <div class="relative inline-block text-left z-50">
+                        <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
+                            <span id="matrix-select-text">Huruf (A-Z)</span>
+                            <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
+                        </button>
+                        <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
+                            <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('huruf', 'Huruf (A-Z)')">Huruf (A-Z)</li>
+                            <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('angka', 'Angka (0-9)')">Angka (0-9)</li>
+                        </ul>
+                    </div>
+                    <button onclick="openInfoModal('matrix')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
+                        <i class="fa-solid fa-circle-question text-base"></i>
                     </button>
-                    <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
-                        {{-- PERBAIKAN: Value diubah menjadi 'huruf' dan 'angka' agar klop dengan struktur data JSON --}}
-                        <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('huruf', 'Huruf (A-Z)')">Huruf (A-Z)</li>
-                        <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('angka', 'Angka (0-9)')">Angka (0-9)</li>
-                    </ul>
                 </div>
-                
-                <button onclick="openInfoModal('matrix')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
+            </div>
+
+            <div class="relative w-full h-[340px] sm:h-[380px] chart-container flex mt-2">
+                <div class="flex items-center justify-center pr-2 select-none pointer-events-none">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-lr] rotate-180">
+                        ← Actual Class
+                    </span>
+                </div>
+                <div class="flex-grow h-[310px] sm:h-[350px] relative pb-6">
+                    <canvas id="matrixChart" class="w-full h-full"></canvas>
+                    <div class="absolute bottom-0 left-0 w-full text-center text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 select-none pointer-events-none">
+                        Predicted Class →
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400">Distribusi Dataset</h3>
+                <button onclick="openInfoModal('distribution')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
                     <i class="fa-solid fa-circle-question text-base"></i>
                 </button>
             </div>
-        </div>
-
-        <div class="relative w-full h-[340px] sm:h-[380px] chart-container flex mt-2">
-            <div class="flex items-center justify-center pr-2 select-none pointer-events-none">
-                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-lr] rotate-180">
-                    ← Actual Class
-                </span>
+            <div class="relative h-[280px] w-full chart-container">
+                <canvas id="distChart"></canvas>
             </div>
-            
-            <div class="flex-grow h-[310px] sm:h-[350px] relative pb-6">
-                <canvas id="matrixChart" class="w-full h-full"></canvas>
-                <div class="absolute bottom-0 left-0 w-full text-center text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 select-none pointer-events-none">
-                    Predicted Class →
+        </div>
+    </div>
+
+    {{-- Sisi Kanan: Evaluasi Per Label --}}
+    <div class="lg:col-span-5 space-y-6 flex flex-col items-start justify-start w-full">
+        <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6 w-full">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-radar text-indigo-500"></i> Evaluasi Per Label
+                </h3>
+                
+                <div class="relative inline-block text-left z-50">
+                    <button id="custom-select-trigger" onclick="toggleCustomDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
+                        <span id="custom-select-text">Pilih Label</span>
+                        <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="custom-select-arrow"></i>
+                    </button>
+                    <ul id="custom-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
+                        {{-- Data diisi secara dinamis melalui script JavaScript --}}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 pt-1">
+                <div class="p-3 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-2xl border border-indigo-500/10 dark:border-indigo-500/20 text-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Precision</span>
+                    <div id="eval-precision" class="text-xl font-black mt-1 text-indigo-600 dark:text-indigo-400">0%</div>
+                </div>
+                <div class="p-3 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/10 dark:border-emerald-500/20 text-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Recall</span>
+                    <div id="eval-recall" class="text-xl font-black mt-1 text-emerald-600 dark:text-emerald-400">0%</div>
+                </div>
+                <div class="p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-2xl border border-amber-500/10 dark:border-amber-500/20 text-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">F1-Score</span>
+                    <div id="eval-f1" class="text-xl font-black mt-1 text-amber-600 dark:text-amber-400">0%</div>
+                </div>
+            </div>
+
+            <div class="bg-indigo-500/[0.03] dark:bg-slate-900/50 p-4 rounded-2xl space-y-3 border border-indigo-500/10 dark:border-slate-800/40 text-xs">
+                <div class="flex items-start gap-3">
+                    <div class="w-5 h-5 rounded-md bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-bullseye text-indigo-600 dark:text-indigo-400 text-[10px]"></i>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
+                        <strong class="text-slate-800 dark:text-slate-200 font-bold">Ketepatan (Precision):</strong> Tingkat kebenaran prediksi model saat menebak label ini dari total seluruh tebakan.
+                    </p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-magnifying-glass text-emerald-600 dark:text-emerald-400 text-[10px]"></i>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
+                        <strong class="text-slate-800 dark:text-slate-200 font-bold">Daya Tangkap (Recall):</strong> Rasio seberapa banyak sampel asli dari label ini yang berhasil dideteksi dengan benar oleh sistem.
+                    </p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-5 h-5 rounded-md bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-scale-balanced text-amber-600 dark:text-amber-400 text-[10px]"></i>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
+                        <strong class="text-slate-800 dark:text-slate-200 font-bold">F1-Score:</strong> Nilai rata-rata harmonik rata tengah yang menyeimbangkan metrik Precision dan Recall.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6">
-        <div class="flex items-center justify-between">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400">Distribusi Dataset</h3>
-            <button onclick="openInfoModal('distribution')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
-                <i class="fa-solid fa-circle-question text-base"></i>
-            </button>
-        </div>
-        <div class="relative h-[280px] w-full chart-container">
-            <canvas id="distChart"></canvas>
-        </div>
-    </div>
 </div>
-
-                            <div class="lg:col-span-5 space-y-6 flex flex-col items-start justify-start w-full">
-                                <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6 w-full">
-                                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
-                                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
-                                            <i class="fa-solid fa-chart-radar text-indigo-500"></i> Evaluasi Per Label
-                                        </h3>
-                                        
-                                        <div class="relative inline-block text-left z-50">
-                                            <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
-                                                <span id="matrix-select-text">Huruf (A-Z)</span>
-                                                <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
-                                            </button>
-                                            <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
-                                                <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('huruf', 'Huruf (A-Z)')">Huruf (A-Z)</li>
-                                                <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('angka', 'Angka (0-9)')">Angka (0-9)</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-3 gap-3 pt-1">
-                                        <div class="p-3 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-2xl border border-indigo-500/10 dark:border-indigo-500/20 text-center">
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Precision</span>
-                                            <div id="eval-precision" class="text-xl font-black mt-1 text-indigo-600 dark:text-indigo-400">0%</div>
-                                        </div>
-                                        <div class="p-3 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/10 dark:border-emerald-500/20 text-center">
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Recall</span>
-                                            <div id="eval-recall" class="text-xl font-black mt-1 text-emerald-600 dark:text-emerald-400">0%</div>
-                                        </div>
-                                        <div class="p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-2xl border border-amber-500/10 dark:border-amber-500/20 text-center">
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">F1-Score</span>
-                                            <div id="eval-f1" class="text-xl font-black mt-1 text-amber-600 dark:text-amber-400">0%</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="bg-indigo-500/[0.03] dark:bg-slate-900/50 p-4 rounded-2xl space-y-3 border border-indigo-500/10 dark:border-slate-800/40 text-xs">
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-5 h-5 rounded-md bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                                <i class="fa-solid fa-bullseye text-indigo-600 dark:text-indigo-400 text-[10px]"></i>
-                                            </div>
-                                            <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
-                                                <strong class="text-slate-800 dark:text-slate-200 font-bold">Ketepatan (Precision):</strong> 
-                                                Tingkat kebenaran prediksi model saat menebak label ini dari total seluruh tebakan.
-                                            </p>
-                                        </div>
-                                        
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                                <i class="fa-solid fa-magnifying-glass text-emerald-600 dark:text-emerald-400 text-[10px]"></i>
-                                            </div>
-                                            <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
-                                                <strong class="text-slate-800 dark:text-slate-200 font-bold">Daya Tangkap (Recall):</strong> 
-                                                Rasio seberapa banyak sampel asli dari label ini yang berhasil dideteksi dengan benar oleh sistem.
-                                            </p>
-                                        </div>
-
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-5 h-5 rounded-md bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                                <i class="fa-solid fa-scale-balanced text-amber-600 dark:text-amber-400 text-[10px]"></i>
-                                            </div>
-                                            <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-justify w-full">
-                                                <strong class="text-slate-800 dark:text-slate-200 font-bold">F1-Score:</strong> 
-                                                Nilai rata-rata harmonik rata tengah yang menyeimbangkan metrik Precision dan Recall. Cocok digunakan sebagai acuan performa jika distribusi data tidak seimbang.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <footer class="footer-bottom pt-8 pb-2 text-center animate-card delay-6" style="animation-delay: 0.5s;">

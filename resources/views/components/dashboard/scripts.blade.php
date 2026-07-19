@@ -4,7 +4,7 @@
     const htmlEl = document.documentElement;
     let globalClassificationReport = null;
     let selectedLabelValue = "";
-    let currentMatrixCategory = 'huruf'; // Konsisten mencari key 'huruf' pada JSON awal
+    let currentMatrixCategory = 'huruf'; 
     let rawMatrixPerKategori = {};
 
     function getAdaptiveColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? '#0f172a' : '#818cf8'; }
@@ -17,21 +17,14 @@
         const optionsList = document.getElementById('matrix-select-options');
         const arrow = document.getElementById('matrix-select-arrow');
 
-        // Pengaman: Tutup dropdown kanan jika terbuka saat dropdown kiri diklik
         const customOptions = document.getElementById('custom-select-options');
         const customArrow = document.getElementById('custom-select-arrow');
         if (customOptions) customOptions.classList.add('hidden');
         if (customArrow) customArrow.classList.remove('rotate-180');
 
         if (!optionsList || !arrow) return;
-
-        if (optionsList.classList.contains('hidden')) {
-            optionsList.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
-        } else {
-            optionsList.classList.add('hidden');
-            arrow.classList.remove('rotate-180');
-        }
+        optionsList.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-180');
     }
 
     function selectMatrixOption(value, text) {
@@ -50,6 +43,11 @@
     function renderCurrentMatrix() {
         const matrixData = rawMatrixPerKategori[currentMatrixCategory] || {};
         renderMatrix(matrixData);
+
+        if (globalClassificationReport) {
+            populateLabelSelect(globalClassificationReport);
+            renderDistribution(globalClassificationReport);
+        }
     }
 
     // DROPDOWN EVALUASI PER LABEL
@@ -64,14 +62,8 @@
         if (matrixArrow) matrixArrow.classList.remove('rotate-180');
 
         if (!optionsList || !arrow) return;
-
-        if (optionsList.classList.contains('hidden')) {
-            optionsList.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
-        } else {
-            optionsList.classList.add('hidden');
-            arrow.classList.remove('rotate-180');
-        }
+        optionsList.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-180');
     }
 
     function selectCustomOption(value, text) {
@@ -267,8 +259,13 @@
 
     function populateLabelSelect(reportData) {
         const listContainer = document.getElementById('custom-select-options');
+        const textEl = document.getElementById('custom-select-text');
         if (!listContainer) return;
         listContainer.innerHTML = '';
+
+        if (textEl) textEl.textContent = "Pilih Label";
+        selectedLabelValue = "";
+        updateLabelEvaluation();
 
         const defaultLi = document.createElement('li');
         defaultLi.className = "px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer border-b border-slate-100 dark:border-slate-700/40";
@@ -279,7 +276,12 @@
         Object.keys(reportData)
             .filter(k => {
                 const cleanKey = k.toLowerCase().trim();
-                return !['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey);
+                // Filter ketat membuang teks ringkasan bawaan scikit-learn
+                if (['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey)) return false;
+                
+                // Pisahkan berdasarkan tipe data string (A-Z) dan digit (0-9)[cite: 2]
+                const isDigit = /^\d+$/.test(k);
+                return currentMatrixCategory === 'angka' ? isDigit : !isDigit;
             })
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
             .forEach(label => {
@@ -300,26 +302,17 @@
         if(!pEl || !rEl || !fEl) return;
 
         if(!label || !globalClassificationReport || !globalClassificationReport[label]) {
-            animateValue(pEl, parseInt(pEl.textContent) || 0, 0, 400, true);
-            animateValue(rEl, parseInt(rEl.textContent) || 0, 0, 400, true);
-            animateValue(fEl, parseInt(fEl.textContent) || 0, 0, 400, true);
+            pEl.textContent = "0%"; rEl.textContent = "0%"; fEl.textContent = "0%";
             return;
         }
 
         const metrics = globalClassificationReport[label];
-        const f1Value = metrics.f1_score !== undefined ? metrics.f1_score : (metrics['f1-score'] !== undefined ? metrics['f1-score'] : 0);
+        // Mendukung pembacaan key bertanda hubung 'f1-score' sesuai format json dump python[cite: 1, 2]
+        const f1Value = metrics['f1-score'] !== undefined ? metrics['f1-score'] : (metrics.f1_score || 0);
 
-        const currentPrecision = parseInt(pEl.textContent) || 0;
-        const currentRecall = parseInt(rEl.textContent) || 0;
-        const currentF1 = parseInt(fEl.textContent) || 0;
-
-        const targetPrecision = (metrics.precision || 0) * 100;
-        const targetRecall = (metrics.recall || 0) * 100;
-        const targetF1 = f1Value * 100;
-
-        animateValue(pEl, currentPrecision, targetPrecision, 450, true);
-        animateValue(rEl, currentRecall, targetRecall, 450, true);
-        animateValue(fEl, currentF1, targetF1, 450, true);
+        animateValue(pEl, parseInt(pEl.textContent) || 0, (metrics.precision || 0) * 100, 450, true);
+        animateValue(rEl, parseInt(rEl.textContent) || 0, (metrics.recall || 0) * 100, 450, true);
+        animateValue(fEl, parseInt(fEl.textContent) || 0, f1Value * 100, 450, true);
     }
 
     function renderLogs(logs) {
@@ -340,16 +333,10 @@
     function renderMatrix(matrixData) {
         const canvas = document.getElementById('matrixChart');
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
         if (window.matrixChartInst) window.matrixChartInst.destroy();
 
         const labels = Object.keys(matrixData);
-
-        if (labels.length === 0) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            window.matrixChartInst = null;
-            return;
-        }
+        if (labels.length === 0) return;
 
         const values = [];
         let grandTotal = 0;
@@ -363,7 +350,7 @@
         });
         const maxVal = Math.max(...values.map(d => d.v)) || 1;
 
-        window.matrixChartInst = new Chart(ctx, {
+        window.matrixChartInst = new Chart(canvas.getContext('2d'), {
             type: 'matrix',
             data: {
                 datasets: [{
@@ -375,33 +362,23 @@
                         if (val === 0) return 'rgba(255, 255, 255, 0.01)';
                         return `rgba(99, 102, 241, ${0.2 + ((val / maxVal) * 0.8)})`;
                     },
-                    borderColor: typeof getMatrixBorderColor === 'function' ? getMatrixBorderColor() : 'rgba(255, 255, 255, 0.03)',
+                    borderColor: getMatrixBorderColor(),
                     borderWidth: 0.5,
                     width: ({chart}) => chart.chartArea ? (chart.chartArea.width / labels.length) - 0.2 : 15,
                     height: ({chart}) => chart.chartArea ? (chart.chartArea.height / labels.length) - 0.2 : 15
                 }]
             },
             options: {
-                maintainAspectRatio: false,
-                responsive: true,
-                animation: false,
-                events: ['click', 'mousemove', 'mouseout'],
+                maintainAspectRatio: false, responsive: true, animation: false,
                 scales: {
-                    x: { type: 'category', labels: labels, grid: { display: false }, ticks: { font: { size: 8 }, color: '#94a3b8' } },
-                    y: { type: 'category', labels: labels, grid: { display: false }, offset: true, ticks: { font: { size: 8 }, color: '#94a3b8' } }
+                    x: { type: 'category', labels: labels, grid: { display: false }, ticks: { font: { size: 8 } } },
+                    y: { type: 'category', labels: labels, grid: { display: false }, offset: true, ticks: { font: { size: 8 } } }
                 },
                 plugins: {
                     legend: false,
                     tooltip: {
                         enabled: true,
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#818cf8',
-                        bodyColor: '#f8fafc',
-                        borderColor: 'rgba(99, 102, 241, 0.3)',
-                        borderWidth: 1,
-                        padding: 10,
-                        bodyFont: { family: "'Plus Jakarta Sans', sans-serif", weight: '600', size: 10 },
-                        titleFont: { family: "'Plus Jakarta Sans', sans-serif", weight: '800', size: 11 },
                         callbacks: {
                             title() { return "Detail Akurasi Koordinat"; },
                             label(context) {
@@ -411,7 +388,7 @@
                                     `Actual Class    : Kelas ${point.y}`,
                                     `Predicted Class : Kelas ${point.x}`,
                                     `Total Sampel    : ${point.v} sampel`,
-                                    `Persentase      : ${pct}% dari total`
+                                    `Persentase      : ${pct}%`
                                 ];
                             }
                         }
@@ -428,16 +405,15 @@
         if (window.distChartInst) window.distChartInst.destroy();
 
         const labels = Object.keys(reportData)
-        .filter(k => {
-            const cleanKey = k.toLowerCase().trim();
-            return !['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey);
-        })
-        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            .filter(k => {
+                const cleanKey = k.toLowerCase().trim();
+                if (['accuracy', 'macro avg', 'weighted avg'].includes(cleanKey)) return false;
+                const isDigit = /^\d+$/.test(k);
+                return currentMatrixCategory === 'angka' ? isDigit : !isDigit;
+            })
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-        const counts = labels.map(l => {
-            const dataTarget = reportData[l] || reportData[l.toUpperCase()] || reportData[l.toLowerCase()];
-            return dataTarget ? (dataTarget.support || 0) : 0;
-        });
+        const counts = labels.map(l => reportData[l] ? (reportData[l].support || 0) : 0);
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#a855f7');
 
@@ -447,9 +423,9 @@
             options: {
                 maintainAspectRatio: false, responsive: true,
                 plugins: { legend: { display: false } },
-                animation: { duration: 2000, easing: 'easeOutQuart' },
+                animation: { duration: 1000, easing: 'easeOutQuart' },
                 scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, beginAtZero: true, ticks: { color: '#64748b', font: { size: 9 } } },
+                    y: { grid: { color: getGridColor(), drawBorder: false }, beginAtZero: true, ticks: { color: '#64748b', font: { size: 9 } } },
                     x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
                 }
             }
