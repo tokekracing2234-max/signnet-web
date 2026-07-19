@@ -56,58 +56,59 @@
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {{-- Sisi Kiri: Matriks Konfusi & Distribusi --}}
                             <div class="lg:col-span-7 space-y-6 flex flex-col">
-                                <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-5 flex-grow">
-                                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
-                                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
-                                            Matriks Konfusi
-                                        </h3>
-                                        <div class="flex items-center gap-2">
-                                            <div class="relative inline-block text-left z-50">
-                                                <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
-                                                    <span id="matrix-select-text">Semua</span>
-                                                    <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
-                                                </button>
-                                                <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
-                                                    <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('all', 'Semua')">Semua</li>
-                                                    <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('numbers', 'Angka (0-9)')">Angka (0-9)</li>
-                                                    <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('letters', 'Huruf (A-Z)')">Huruf (A-Z)</li>
-                                                </ul>
-                                            </div>
-                                            
-                                            <button onclick="openInfoModal('matrix')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
-                                                <i class="fa-solid fa-circle-question text-base"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+    <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-5 flex-grow">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 relative">
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400 flex items-center gap-2">
+                Matriks Konfusi
+            </h3>
+            <div class="flex items-center gap-2">
+                <div class="relative inline-block text-left z-50">
+                    {{-- PERBAIKAN: Default text diubah menjadi Huruf (A-Z) sesuai dengan inisialisasi awal variabel JS --}}
+                    <button id="matrix-select-trigger" onclick="toggleMatrixDropdown(event)" class="dynamic-select text-[10px] font-bold border rounded pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-800 dark:text-indigo-400 w-[130px] flex items-center justify-between cursor-pointer relative">
+                        <span id="matrix-select-text">Huruf (A-Z)</span>
+                        <i class="fa-solid fa-chevron-down text-[8px] absolute right-3 pointer-events-none transition-transform duration-200" id="matrix-select-arrow"></i>
+                    </button>
+                    <ul id="matrix-select-options" class="hidden absolute right-0 mt-1 w-[130px] max-h-[160px] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg custom-scroll">
+                        {{-- PERBAIKAN: Value diubah menjadi 'huruf' dan 'angka' agar klop dengan struktur data JSON --}}
+                        <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('huruf', 'Huruf (A-Z)')">Huruf (A-Z)</li>
+                        <li class="px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer" onclick="selectMatrixOption('angka', 'Angka (0-9)')">Angka (0-9)</li>
+                    </ul>
+                </div>
+                
+                <button onclick="openInfoModal('matrix')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
+                    <i class="fa-solid fa-circle-question text-base"></i>
+                </button>
+            </div>
+        </div>
 
-                                    <div class="relative w-full h-[340px] sm:h-[380px] chart-container flex mt-2">
-                                        <div class="flex items-center justify-center pr-2 select-none pointer-events-none">
-                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-lr] rotate-180">
-                                                ← Actual Class
-                                            </span>
-                                        </div>
-                                        
-                                        <div class="flex-grow h-[310px] sm:h-[350px] relative pb-6">
-                                            <canvas id="matrixChart" class="w-full h-full"></canvas>
-                                            <div class="absolute bottom-0 left-0 w-full text-center text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 select-none pointer-events-none">
-                                                Predicted Class →
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6">
-                                    <div class="flex items-center justify-between">
-                                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400">Distribusi Dataset</h3>
-                                        <button onclick="openInfoModal('distribution')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
-                                            <i class="fa-solid fa-circle-question text-base"></i>
-                                        </button>
-                                    </div>
-                                    <div class="relative h-[280px] w-full chart-container">
-                                        <canvas id="distChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
+        <div class="relative w-full h-[340px] sm:h-[380px] chart-container flex mt-2">
+            <div class="flex items-center justify-center pr-2 select-none pointer-events-none">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-lr] rotate-180">
+                    ← Actual Class
+                </span>
+            </div>
+            
+            <div class="flex-grow h-[310px] sm:h-[350px] relative pb-6">
+                <canvas id="matrixChart" class="w-full h-full"></canvas>
+                <div class="absolute bottom-0 left-0 w-full text-center text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 select-none pointer-events-none">
+                    Predicted Class →
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-indigo-400">Distribusi Dataset</h3>
+            <button onclick="openInfoModal('distribution')" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors p-1">
+                <i class="fa-solid fa-circle-question text-base"></i>
+            </button>
+        </div>
+        <div class="relative h-[280px] w-full chart-container">
+            <canvas id="distChart"></canvas>
+        </div>
+    </div>
+</div>
 
                             <div class="lg:col-span-5 space-y-6 flex flex-col items-start justify-start w-full">
                                 <div class="glass-card chart-card-spec c-bg-chart p-6 rounded-[2.5rem] space-y-4 animate-card delay-6 w-full">

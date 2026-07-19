@@ -4,7 +4,7 @@
     const htmlEl = document.documentElement;
     let globalClassificationReport = null;
     let selectedLabelValue = "";
-    let currentMatrixCategory = 'huruf';
+    let currentMatrixCategory = 'huruf'; // Konsisten mencari key 'huruf' pada JSON awal
     let rawMatrixPerKategori = {};
 
     function getAdaptiveColor() { return (htmlEl.getAttribute('data-theme') || 'dark') === 'light' ? '#0f172a' : '#818cf8'; }
@@ -17,8 +17,13 @@
         const optionsList = document.getElementById('matrix-select-options');
         const arrow = document.getElementById('matrix-select-arrow');
 
-        document.getElementById('custom-select-options').classList.add('hidden');
-        document.getElementById('custom-select-arrow').classList.remove('rotate-180');
+        // Pengaman: Tutup dropdown kanan jika terbuka saat dropdown kiri diklik
+        const customOptions = document.getElementById('custom-select-options');
+        const customArrow = document.getElementById('custom-select-arrow');
+        if (customOptions) customOptions.classList.add('hidden');
+        if (customArrow) customArrow.classList.remove('rotate-180');
+
+        if (!optionsList || !arrow) return;
 
         if (optionsList.classList.contains('hidden')) {
             optionsList.classList.remove('hidden');
@@ -30,10 +35,15 @@
     }
 
     function selectMatrixOption(value, text) {
-        document.getElementById('matrix-select-text').textContent = text;
+        const textEl = document.getElementById('matrix-select-text');
+        const optionsList = document.getElementById('matrix-select-options');
+        const arrow = document.getElementById('matrix-select-arrow');
+
+        if (textEl) textEl.textContent = text;
         currentMatrixCategory = value;
-        document.getElementById('matrix-select-options').classList.add('hidden');
-        document.getElementById('matrix-select-arrow').classList.remove('rotate-180');
+        
+        if (optionsList) optionsList.classList.add('hidden');
+        if (arrow) arrow.classList.remove('rotate-180');
         renderCurrentMatrix();
     }
 
@@ -48,8 +58,12 @@
         const optionsList = document.getElementById('custom-select-options');
         const arrow = document.getElementById('custom-select-arrow');
 
-        document.getElementById('matrix-select-options').classList.add('hidden');
-        document.getElementById('matrix-select-arrow').classList.remove('rotate-180');
+        const matrixOptions = document.getElementById('matrix-select-options');
+        const matrixArrow = document.getElementById('matrix-select-arrow');
+        if (matrixOptions) matrixOptions.classList.add('hidden');
+        if (matrixArrow) matrixArrow.classList.remove('rotate-180');
+
+        if (!optionsList || !arrow) return;
 
         if (optionsList.classList.contains('hidden')) {
             optionsList.classList.remove('hidden');
@@ -61,26 +75,33 @@
     }
 
     function selectCustomOption(value, text) {
-        document.getElementById('custom-select-text').textContent = text;
+        const textEl = document.getElementById('custom-select-text');
+        const optionsList = document.getElementById('custom-select-options');
+        const arrow = document.getElementById('custom-select-arrow');
+
+        if (textEl) textEl.textContent = text;
         selectedLabelValue = value;
-        document.getElementById('custom-select-options').classList.add('hidden');
-        document.getElementById('custom-select-arrow').classList.remove('rotate-180');
+        
+        if (optionsList) optionsList.classList.add('hidden');
+        if (arrow) arrow.classList.remove('rotate-180');
         updateLabelEvaluation();
     }
 
     document.addEventListener('click', function(e) {
         const matrixTrigger = document.getElementById('matrix-select-trigger');
         const matrixOptions = document.getElementById('matrix-select-options');
-        if (matrixTrigger && !matrixTrigger.contains(e.target) && !matrixOptions.contains(e.target)) {
+        const matrixArrow = document.getElementById('matrix-select-arrow');
+        if (matrixTrigger && matrixOptions && !matrixTrigger.contains(e.target) && !matrixOptions.contains(e.target)) {
             matrixOptions.classList.add('hidden');
-            document.getElementById('matrix-select-arrow').classList.remove('rotate-180');
+            if (matrixArrow) matrixArrow.classList.remove('rotate-180');
         }
 
         const labelTrigger = document.getElementById('custom-select-trigger');
         const labelOptions = document.getElementById('custom-select-options');
-        if (labelTrigger && !labelTrigger.contains(e.target) && !labelOptions.contains(e.target)) {
+        const labelArrow = document.getElementById('custom-select-arrow');
+        if (labelTrigger && labelOptions && !labelTrigger.contains(e.target) && !labelOptions.contains(e.target)) {
             labelOptions.classList.add('hidden');
-            document.getElementById('custom-select-arrow').classList.remove('rotate-180');
+            if (labelArrow) labelArrow.classList.remove('rotate-180');
         }
     });
 
@@ -95,7 +116,6 @@
             bodyEl.innerHTML = `
                 <p class="font-medium text-slate-800 dark:text-slate-200"><strong>Apa itu Matriks Konfusi?</strong></p>
                 <p>Matriks Konfusi adalah instrumen evaluasi matematis berbentuk tabel yang memetakan efektivitas kinerja model klasifikasi secara komprehensif. Tabel ini membandingkan data aktual (fakta lapangan) dengan data hasil prediksi yang dihasilkan oleh algoritma kecerdasan buatan.</p>
-
                 <div class="p-3.5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 space-y-1">
                     <p class="font-semibold text-indigo-500"><i class="fa-solid fa-graduation-cap"></i> Cara Membaca Grafik Matrix:</p>
                     <ul class="list-disc list-inside space-y-1 text-[11px]">
@@ -110,7 +130,6 @@
             bodyEl.innerHTML = `
                 <p class="font-medium text-slate-800 dark:text-slate-200"><strong>Apa itu Distribusi Dataset?</strong></p>
                 <p>Distribusi Dataset menampilkan visualisasi grafik batang yang merepresentasikan total volume sampel data (nilai *Support*) yang dialokasikan pada setiap label kelas klasifikasi, baik berupa huruf (A-Z) maupun angka (0-9).</p>
-
                 <div class="p-3.5 bg-purple-500/5 rounded-2xl border border-purple-500/10 space-y-1">
                     <p class="font-semibold text-purple-500"><i class="fa-solid fa-scale-balanced"></i> Pentingnya Keseimbangan Data (Data Balance):</p>
                     <p class="text-[11px]">Kuantitas data yang seimbang pada tiap grafik memastikan model belajar secara adil tanpa kecenderungan memihak (*bias*). Jika salah satu batang grafik terlalu tinggi dibandingkan yang lain, model akan cenderung mahir menebak kelas mayoritas tersebut namun lemah dalam mengenali kelas minoritas.</p>
@@ -136,7 +155,6 @@
 
     function toggleModal(show) {
         if (window.event) window.event.stopPropagation();
-
         const modal = document.getElementById('infoModal');
         const content = document.getElementById('modalContent');
         if (!modal || !content) return;
@@ -152,7 +170,6 @@
             modal.classList.add('animate__fadeOut');
             content.classList.remove('animate__zoomIn');
             content.classList.add('animate__zoomOut');
-
             modal.removeEventListener('animationend', onAnimationEndHandler);
             modal.addEventListener('animationend', onAnimationEndHandler);
         }
@@ -279,6 +296,8 @@
         const pEl = document.getElementById('eval-precision');
         const rEl = document.getElementById('eval-recall');
         const fEl = document.getElementById('eval-f1');
+
+        if(!pEl || !rEl || !fEl) return;
 
         if(!label || !globalClassificationReport || !globalClassificationReport[label]) {
             animateValue(pEl, parseInt(pEl.textContent) || 0, 0, 400, true);
