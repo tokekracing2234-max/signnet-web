@@ -39,6 +39,8 @@
         --stat-border-blue: rgba(99, 102, 241, 0.2);
         --stat-bg-green: rgba(6, 78, 59, 0.25);
         --stat-border-green: rgba(16, 185, 129, 0.15);
+        --stat-bg-rose: rgba(159, 18, 57, 0.25);
+        --stat-border-rose: rgba(244, 63, 94, 0.2);
         --stat-bg-amber: rgba(120, 53, 4, 0.2);
         --stat-border-amber: rgba(245, 158, 11, 0.15);
     }
@@ -60,6 +62,8 @@
         --stat-border-blue: rgba(165, 180, 252, 0.4);
         --stat-bg-green: #f0fdf4;
         --stat-border-green: rgba(110, 231, 183, 0.4);
+        --stat-bg-rose: #fff1f2;
+        --stat-border-rose: rgba(251, 113, 133, 0.4);
         --stat-bg-amber: #fef3c7;
         --stat-border-amber: rgba(252, 211, 77, 0.4);
     }
@@ -104,7 +108,8 @@
     
     .c-bg-1 { background-color: var(--stat-bg-blue) !important; border-color: var(--stat-border-blue) !important; } 
     .c-bg-2 { background-color: var(--stat-bg-green) !important; border-color: var(--stat-border-green) !important; } 
-    .c-bg-3 { background-color: var(--stat-bg-amber) !important; border-color: var(--stat-border-amber) !important; } 
+    .c-bg-3 { background-color: var(--stat-bg-rose) !important; border-color: var(--stat-border-rose) !important; }
+    .c-bg-4 { background-color: var(--stat-bg-amber) !important; border-color: var(--stat-border-amber) !important; } 
     .c-bg-chart { background: var(--bg-card-chart); }
     
     .modal-spec-card:hover { 
